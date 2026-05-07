@@ -1,0 +1,12 @@
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.csproj.AssemblyReference.cache
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.AssemblyInfoInputs.cache
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.AssemblyInfo.cs
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.csproj.CoreCompileInputs.cache
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\bin\Debug\net8.0\Facturacion.Core.deps.json
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\bin\Debug\net8.0\Facturacion.Core.dll
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\bin\Debug\net8.0\Facturacion.Core.pdb
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.dll
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\refint\Facturacion.Core.dll
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\Facturacion.Core.pdb
+D:\Proyectos\FacturacionUniversal\Facturacion.Core\obj\Debug\net8.0\ref\Facturacion.Core.dll

@@ -1,62 +1,6 @@
-# Mapeo de archivos fuente → nodos del vault de Obsidian
-# Vault: D:\Obsidian\Bovedá\proyectos\facturacion-universal\
-#
-# Actualizar este archivo cuando se agreguen nuevos módulos o archivos significativos.
-# Patrones usan fnmatch: ** = cualquier carpeta, * = cualquier nombre de archivo.
+# AUTO-GENERADO por n8n Workflow "Vault Node Map Sync" — NO editar manualmente.
+# Fuente: D:\Obsidian\Bovedá\proyectos\facturacion-universal\nodos\*.md  (sección ## Archivos fuente)
+
+project: facturacion-universal
 
 mappings:
-  - pattern: "Facturacion.Core/**"
-    node: "core"
-    vault_path: "proyectos/facturacion-universal/nodos/core.md"
-
-  - pattern: "Facturacion.Infraestructura/Persistencia/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Infraestructura/Servicios/Sri/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Infraestructura/Servicios/Firma/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Infraestructura/Servicios/Pdf/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Infraestructura/Servicios/Xml/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Infraestructura/**"
-    node: "infraestructura"
-    vault_path: "proyectos/facturacion-universal/nodos/infraestructura.md"
-
-  - pattern: "Facturacion.Api/Endpoints/**"
-    node: "api"
-    vault_path: "proyectos/facturacion-universal/nodos/api.md"
-
-  - pattern: "Facturacion.Api/Contratos/**"
-    node: "api"
-    vault_path: "proyectos/facturacion-universal/nodos/api.md"
-
-  - pattern: "Facturacion.Api/Middleware/**"
-    node: "api"
-    vault_path: "proyectos/facturacion-universal/nodos/api.md"
-
-  - pattern: "Facturacion.Api/**"
-    node: "api"
-    vault_path: "proyectos/facturacion-universal/nodos/api.md"
-
-  - pattern: "Facturacion.Tests/**"
-    node: "tests"
-    vault_path: "proyectos/facturacion-universal/nodos/tests.md"
-
-  - pattern: "**/*.sql"
-    node: "bd"
-    vault_path: "proyectos/facturacion-universal/nodos/bd.md"
-
-  - pattern: "**/Migrations/**"
-    node: "bd"
-    vault_path: "proyectos/facturacion-universal/nodos/bd.md"
