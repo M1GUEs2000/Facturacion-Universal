@@ -17,7 +17,6 @@ public class ServicioPdf : IServicioPdf
     {
         var bytes = Document.Create(c => c.Page(p =>
         {
-            p.Size(PageSizes.A4);
             p.Content().Text($"RIDE Factura {factura.ClaveAcceso}");
         })).GeneratePdf();
 
@@ -28,7 +27,6 @@ public class ServicioPdf : IServicioPdf
     {
         var bytes = Document.Create(c => c.Page(p =>
         {
-            p.Size(PageSizes.A4);
             p.Content().Text($"RIDE Nota de Crédito {notaCredito.ClaveAcceso}");
         })).GeneratePdf();
 
@@ -39,7 +37,6 @@ public class ServicioPdf : IServicioPdf
     {
         var bytes = Document.Create(c => c.Page(p =>
         {
-            p.Size(PageSizes.A4);
             p.Content().Text($"RIDE Retención {retencion.ClaveAcceso}");
         })).GeneratePdf();
 

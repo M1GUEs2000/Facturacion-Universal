@@ -4,9 +4,9 @@ using System.Text;
 using ErrorOr;
 using Facturacion.Core;
 using Facturacion.Core.Interfaces.Servicios;
-using FirmaXadesNet;
-using FirmaXadesNet.Crypto;
-using FirmaXadesNet.Signature.Parameters;
+using FirmaXadesNetCore;
+using FirmaXadesNetCore.Crypto;
+using FirmaXadesNetCore.Signature.Parameters;
 
 namespace Facturacion.Infraestructura.Servicios.Firma;
 
@@ -33,19 +33,19 @@ public class ServicioFirma : IServicioFirma
 
         try
         {
-            var service = new XadesService();
+            using var signer = new Signer(cert);
             var parametros = new SignatureParameters
             {
                 SignaturePackaging = SignaturePackaging.ENVELOPED,
-                InputMimeType = "text/xml",
                 SignatureMethod = SignatureMethod.RSAwithSHA1,
-                DigestMethod = DigestMethod.SHA1
+                DigestMethod = DigestMethod.SHA1,
+                Signer = signer
             };
 
-            using parametros.Signer = new Signer(cert);
+            var service = new XadesService();
             using var ms = new MemoryStream(Encoding.UTF8.GetBytes(xml));
             var docFirmado = service.Sign(ms, parametros);
-            return docFirmado.OuterXml;
+            return docFirmado.Document.OuterXml;
         }
         catch (Exception)
         {

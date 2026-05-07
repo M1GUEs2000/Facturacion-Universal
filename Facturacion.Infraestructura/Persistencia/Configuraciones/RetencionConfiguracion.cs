@@ -3,39 +3,11 @@ using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Facturacion.Infraestructura.Persistencia.Configuraciones;
 
 public class RetencionConfiguracion : IEntityTypeConfiguration<Retencion>
 {
-    static readonly ValueConverter<Ambiente, string> AmbienteConverter = new(
-        v => ((int)v).ToString(),
-        v => (Ambiente)int.Parse(v));
-
-    static readonly ValueConverter<EstadoSri, string> EstadoSriConverter = new(
-        v => v switch
-        {
-            EstadoSri.Enviado => "ENVIADO",
-            EstadoSri.PendienteAutorizacion => "PENDIENTE_AUTORIZACION",
-            EstadoSri.Autorizado => "AUTORIZADO",
-            EstadoSri.NoAutorizado => "NO_AUTORIZADO",
-            EstadoSri.Anulado => "ANULADO",
-            _ => "PENDIENTE"
-        },
-        v => v switch
-        {
-            "ENVIADO" => EstadoSri.Enviado,
-            "PENDIENTE_AUTORIZACION" => EstadoSri.PendienteAutorizacion,
-            "AUTORIZADO" => EstadoSri.Autorizado,
-            "NO_AUTORIZADO" => EstadoSri.NoAutorizado,
-            "ANULADO" => EstadoSri.Anulado,
-            _ => EstadoSri.Pendiente
-        });
-
-    static readonly ValueConverter<EstadoCorreo, string> EstadoCorreoConverter = new(
-        v => v == EstadoCorreo.Enviado ? "ENVIADO" : "PENDIENTE",
-        v => v == "ENVIADO" ? EstadoCorreo.Enviado : EstadoCorreo.Pendiente);
 
     public void Configure(EntityTypeBuilder<Retencion> builder)
     {
@@ -45,7 +17,7 @@ public class RetencionConfiguracion : IEntityTypeConfiguration<Retencion>
         builder.Property(r => r.Id).HasColumnName("id");
         builder.Property(r => r.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(13).IsRequired();
         builder.Property(r => r.IpAddress).HasColumnName("ip_address").HasMaxLength(45);
-        builder.Property(r => r.Ambiente).HasColumnName("ambiente").HasMaxLength(1).HasConversion(AmbienteConverter).IsRequired();
+        builder.Property(r => r.Ambiente).HasColumnName("ambiente").HasMaxLength(1).HasConversion(ConvertersEfCore.AmbienteConverter).IsRequired();
         builder.Property(r => r.Estab).HasColumnName("estab").HasMaxLength(3).IsRequired();
         builder.Property(r => r.PtoEmi).HasColumnName("pto_emi").HasMaxLength(3).IsRequired();
         builder.Property(r => r.Secuencial).HasColumnName("secuencial").HasMaxLength(9).IsRequired();
@@ -68,8 +40,8 @@ public class RetencionConfiguracion : IEntityTypeConfiguration<Retencion>
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                 v => JsonSerializer.Deserialize<List<InfoAdicional>>(v, (JsonSerializerOptions?)null) ?? new());
 
-        builder.Property(r => r.EstadoSri).HasColumnName("estado_sri").HasMaxLength(30).HasConversion(EstadoSriConverter).IsRequired();
-        builder.Property(r => r.EstadoCorreo).HasColumnName("estado_correo").HasMaxLength(20).HasConversion(EstadoCorreoConverter).IsRequired();
+        builder.Property(r => r.EstadoSri).HasColumnName("estado_sri").HasMaxLength(30).HasConversion(ConvertersEfCore.EstadoSriConverter).IsRequired();
+        builder.Property(r => r.EstadoCorreo).HasColumnName("estado_correo").HasMaxLength(20).HasConversion(ConvertersEfCore.EstadoCorreoConverter).IsRequired();
         builder.Property(r => r.NumeroAutorizacion).HasColumnName("numero_autorizacion").HasMaxLength(49);
         builder.Property(r => r.FechaAutorizacion).HasColumnName("fecha_autorizacion");
         builder.Property(r => r.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("jsonb");
