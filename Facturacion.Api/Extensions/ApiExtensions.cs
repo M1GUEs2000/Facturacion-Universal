@@ -3,6 +3,7 @@ using Facturacion.Api.Endpoints.Facturas;
 using Facturacion.Api.Endpoints.NotasCredito;
 using Facturacion.Api.Endpoints.Retenciones;
 using Facturacion.Api.Middleware;
+using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Empresas;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.CasosDeUso.NotasCredito;
@@ -40,6 +41,7 @@ public static class ApiExtensions
 
         services.AddValidatorsFromAssemblyContaining<Program>();
 
+        services.AddScoped<OrquestadorEmision>();
         services.AddScoped<EmitirFactura>();
         services.AddScoped<EmitirNotaCredito>();
         services.AddScoped<EmitirRetencion>();

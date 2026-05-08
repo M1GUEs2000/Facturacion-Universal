@@ -1,8 +1,9 @@
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 
 namespace Facturacion.Core.Entidades;
 
-public class NotaCredito
+public class NotaCredito : IDocumentoEmitible
 {
     protected NotaCredito() { }
 

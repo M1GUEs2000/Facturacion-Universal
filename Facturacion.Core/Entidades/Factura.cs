@@ -1,8 +1,9 @@
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 
 namespace Facturacion.Core.Entidades;
 
-public class Factura
+public class Factura : IDocumentoEmitible
 {
     protected Factura() { }
 

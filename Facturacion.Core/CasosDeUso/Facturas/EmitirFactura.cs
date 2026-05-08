@@ -1,8 +1,7 @@
-using System.Text;
 using ErrorOr;
+using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
-using Facturacion.Core;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
@@ -57,10 +56,8 @@ public class EmitirFactura(
     IEmpresasRepositorio empresas,
     IFacturasRepositorio facturas,
     IServicioXml xml,
-    IServicioFirma firma,
-    IServicioSri sri,
     IServicioPdf pdf,
-    IServicioStorage storage)
+    OrquestadorEmision orquestador)
 {
     public async Task<ErrorOr<Factura>> EjecutarAsync(ComandoEmitirFactura cmd, CancellationToken ct = default)
     {
@@ -90,53 +87,14 @@ public class EmitirFactura(
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.Propina, cmd.ImporteTotal,
             cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle, cmd.IpAddress);
 
-        // Necesitamos el mismo Id en la entidad que generamos arriba para el detalle
-        // Se resuelve en la infraestructura al persistir — el Id de Factura y los FacturaId del detalle deben coincidir.
-
         var xmlResult = xml.GenerarXmlFactura(factura, empresa);
         if (xmlResult.IsError) return xmlResult.Errors;
 
-        var firmadoResult = await firma.FirmarXmlAsync(xmlResult.Value, empresa.CertificadoP12, empresa.CertPassword, ct);
-        if (firmadoResult.IsError) return firmadoResult.Errors;
-
-        var xmlPath = $"{empresa.Ruc}/facturas/{claveAcceso}.xml";
-        var storageXmlResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(firmadoResult.Value), xmlPath, ct);
-        if (storageXmlResult.IsError) return storageXmlResult.Errors;
-
-        factura.RegistrarXmlFirmado(storageXmlResult.Value);
-
-        var recepcionResult = await sri.EnviarDocumentoAsync(firmadoResult.Value, cmd.Ambiente, ct);
-        if (recepcionResult.IsError) return recepcionResult.Errors;
-
-        factura.RegistrarEnvioSri();
-
-        var autorizacionResult = await sri.ConsultarAutorizacionAsync(claveAcceso, cmd.Ambiente, ct);
-        if (autorizacionResult.IsError) return autorizacionResult.Errors;
-
-        var auth = autorizacionResult.Value;
-
-        if (!auth.Autorizado)
-        {
-            factura.RegistrarNoAutorizacion(auth.MensajeSri);
-            await facturas.AgregarAsync(factura, ct);
-            return Errores.Sri.NoAutorizado(auth.MensajeSri);
-        }
-
-        var pdfResult = await pdf.GenerarRideFacturaAsync(factura, ct);
-        if (pdfResult.IsError) return pdfResult.Errors;
-
-        var pdfPath = $"{empresa.Ruc}/facturas/{claveAcceso}.pdf";
-        var storagePdfResult = await storage.GuardarAsync(pdfResult.Value, pdfPath, ct);
-        if (storagePdfResult.IsError) return storagePdfResult.Errors;
-
-        var xmlAutPath = $"{empresa.Ruc}/facturas/{claveAcceso}_autorizado.xml";
-        var storageXmlAutResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(auth.XmlAutorizado!), xmlAutPath, ct);
-        if (storageXmlAutResult.IsError) return storageXmlAutResult.Errors;
-
-        factura.RegistrarAutorizacion(auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value, storageXmlAutResult.Value, storagePdfResult.Value);
-
-        await facturas.AgregarAsync(factura, ct);
-
-        return factura;
+        return await orquestador.EjecutarAsync(new ParametrosEmision<Factura>(
+            factura, claveAcceso, cmd.Ambiente, xmlResult.Value,
+            $"{empresa.Ruc}/facturas",
+            empresa.CertificadoP12, empresa.CertPassword,
+            (f, t) => pdf.GenerarRideFacturaAsync(f, t),
+            (f, t) => facturas.AgregarAsync(f, t)), ct);
     }
 }

@@ -1,8 +1,9 @@
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 
 namespace Facturacion.Core.Entidades;
 
-public class Retencion
+public class Retencion : IDocumentoEmitible
 {
     protected Retencion() { }
 

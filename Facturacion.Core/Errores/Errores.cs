@@ -54,11 +54,22 @@ public static class Errores
         public static Error NoAutorizado(string? mensaje = null) =>
             Error.Failure("Sri.NoAutorizado", mensaje ?? "El SRI no autorizó el documento.");
 
+        public static Error Devuelta(string? detalle = null) =>
+            Error.Failure("Sri.Devuelta", detalle is not null
+                ? $"El SRI devolvió el documento en recepción: {detalle}"
+                : "El SRI devolvió el documento en recepción.");
+
+        public static readonly Error SecuencialDuplicado =
+            Error.Conflict("Sri.SecuencialDuplicado", "El secuencial ya fue registrado en el SRI (CLAVE ACCESO REGISTRADA).");
+
+        public static readonly Error EnProcesamiento =
+            Error.Failure("Sri.EnProcesamiento", "El SRI recibió el documento pero aún está en procesamiento.");
+
         public static readonly Error ErrorComunicacion =
             Error.Failure("Sri.ErrorComunicacion", "Error al comunicarse con el SRI.");
 
-        public static readonly Error Rechazado =
-            Error.Failure("Sri.Rechazado", "El SRI rechazó el documento en recepción.");
+        public static readonly Error SinRespuesta =
+            Error.Failure("Sri.SinRespuesta", "El SRI no devolvió una respuesta reconocible.");
     }
 
     public static class Firma
