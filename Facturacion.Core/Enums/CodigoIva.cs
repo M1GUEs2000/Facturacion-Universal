@@ -1,11 +1,15 @@
 namespace Facturacion.Core.Enums;
 
-// Códigos de tarifa IVA según catálogo SRI
+// Codigos de porcentaje IVA segun catalogo SRI usado por el sistema legado.
 public enum CodigoIva
 {
-    Exento = 0,
-    DoceP = 2,    // 12%
-    CatorceP = 3, // 14%
-    QuinceP = 4,  // 15%
-    CincoP = 5    // 5%
+    Cero = 0,
+    Doce = 2,
+    Catorce = 3,
+    Quince = 4,
+    Cinco = 5,
+    NoObjeto = 6,
+    Exento = 7,
+    DiferenciadoOcho = 8,
+    Trece = 10
 }

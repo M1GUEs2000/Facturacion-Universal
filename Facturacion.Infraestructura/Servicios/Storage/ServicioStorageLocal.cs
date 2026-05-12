@@ -1,11 +1,12 @@
 using ErrorOr;
 using Facturacion.Core;
 using Facturacion.Core.Interfaces.Servicios;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Facturacion.Infraestructura.Servicios.Storage;
 
-public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones) : IServicioStorage
+public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones, ILogger<ServicioStorageLocal> logger) : IServicioStorage
 {
     private readonly string _basePath = opciones.Value.BasePath;
 
@@ -18,8 +19,9 @@ public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones) : ISe
             await File.WriteAllBytesAsync(fullPath, contenido, ct);
             return ruta;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error guardando archivo en {Ruta}", ruta);
             return Errores.Storage.ErrorGuardar;
         }
     }
@@ -34,8 +36,9 @@ public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones) : ISe
 
             return await File.ReadAllBytesAsync(fullPath, ct);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error obteniendo archivo de {Ruta}", ruta);
             return Errores.Storage.ArchivoNoEncontrado;
         }
     }
@@ -51,8 +54,9 @@ public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones) : ISe
             File.Delete(fullPath);
             return Task.FromResult<ErrorOr<bool>>(true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error eliminando archivo de {Ruta}", ruta);
             return Task.FromResult<ErrorOr<bool>>(Errores.Storage.ErrorGuardar);
         }
     }

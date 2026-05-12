@@ -20,7 +20,11 @@ try
     var app = builder.Build();
 
     app.UseExceptionHandler();
-    app.UseHttpsRedirection();
+
+    if (!app.Environment.IsDevelopment())
+        app.UseHttpsRedirection();
+
+    app.UseApiCors();
     app.UseAuthentication();
     app.UseAuthorization();
 

@@ -7,16 +7,17 @@ using Facturacion.Core.Interfaces.Servicios;
 using FirmaXadesNetCore;
 using FirmaXadesNetCore.Crypto;
 using FirmaXadesNetCore.Signature.Parameters;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Infraestructura.Servicios.Firma;
 
-public class ServicioFirma : IServicioFirma
+public class ServicioFirma(ILogger<ServicioFirma> logger) : IServicioFirma
 {
     public Task<ErrorOr<string>> FirmarXmlAsync(
         string xml, byte[] certificadoP12, string password, CancellationToken ct = default)
-        => Task.Run(() => Firmar(xml, certificadoP12, password), ct);
+        => Task.Run(() => Firmar(xml, certificadoP12, password, logger), ct);
 
-    private static ErrorOr<string> Firmar(string xml, byte[] certificadoP12, string password)
+    private static ErrorOr<string> Firmar(string xml, byte[] certificadoP12, string password, ILogger logger)
     {
         X509Certificate2 cert;
         try
@@ -26,8 +27,9 @@ public class ServicioFirma : IServicioFirma
                 password,
                 X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
+            logger.LogError(ex, "Certificado P12 invalido o password incorrecto");
             return Errores.Firma.CertificadoInvalido;
         }
 
@@ -37,8 +39,8 @@ public class ServicioFirma : IServicioFirma
             var parametros = new SignatureParameters
             {
                 SignaturePackaging = SignaturePackaging.ENVELOPED,
-                SignatureMethod = SignatureMethod.RSAwithSHA1,
-                DigestMethod = DigestMethod.SHA1,
+                SignatureMethod = SignatureMethod.RSAwithSHA256,
+                DigestMethod = DigestMethod.SHA256,
                 Signer = signer
             };
 
@@ -47,8 +49,9 @@ public class ServicioFirma : IServicioFirma
             var docFirmado = service.Sign(ms, parametros);
             return docFirmado.Document.OuterXml;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error firmando XML con XAdES");
             return Errores.Firma.ErrorFirma;
         }
         finally

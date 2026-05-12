@@ -5,7 +5,7 @@ namespace Facturacion.Core.Interfaces.Servicios;
 
 public interface IServicioXml
 {
-    ErrorOr<string> GenerarXmlFactura(Factura factura, Empresa empresa);
+    ErrorOr<string> GenerarXmlFactura(Factura factura, Empresa empresa, ParametrosFacturacion? parametros = null);
     ErrorOr<string> GenerarXmlNotaCredito(NotaCredito notaCredito, Empresa empresa);
-    ErrorOr<string> GenerarXmlRetencion(Retencion retencion, Empresa empresa);
+    ErrorOr<string> GenerarXmlRetencion(Retencion retencion, Empresa empresa, ParametrosFacturacion? parametros = null);
 }

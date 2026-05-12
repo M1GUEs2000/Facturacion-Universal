@@ -8,10 +8,11 @@ using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Infraestructura.Servicios.Xml.Modelos;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Infraestructura.Servicios.Xml;
 
-public class ServicioXml : IServicioXml
+public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
 {
     private static readonly XmlSerializerNamespaces EmptyNs = BuildEmptyNs();
 
@@ -22,14 +23,15 @@ public class ServicioXml : IServicioXml
         return ns;
     }
 
-    public ErrorOr<string> GenerarXmlFactura(Factura factura, Empresa empresa)
+    public ErrorOr<string> GenerarXmlFactura(Factura factura, Empresa empresa, ParametrosFacturacion? parametros = null)
     {
         try
         {
-            return Serializar(MapearFactura(factura, empresa));
+            return Serializar(MapearFactura(factura, empresa, parametros));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error serializando XML de factura {ClaveAcceso}", factura.ClaveAcceso);
             return Errores.Xml.ErrorSerializacion;
         }
     }
@@ -40,27 +42,29 @@ public class ServicioXml : IServicioXml
         {
             return Serializar(MapearNotaCredito(notaCredito, empresa));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error serializando XML de nota de credito {ClaveAcceso}", notaCredito.ClaveAcceso);
             return Errores.Xml.ErrorSerializacion;
         }
     }
 
-    public ErrorOr<string> GenerarXmlRetencion(Retencion retencion, Empresa empresa)
+    public ErrorOr<string> GenerarXmlRetencion(Retencion retencion, Empresa empresa, ParametrosFacturacion? parametros = null)
     {
         try
         {
-            return Serializar(MapearRetencion(retencion, empresa));
+            return Serializar(MapearRetencion(retencion, empresa, parametros));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error serializando XML de retencion {ClaveAcceso}", retencion.ClaveAcceso);
             return Errores.Xml.ErrorSerializacion;
         }
     }
 
     // ─── Mapping ──────────────────────────────────────────────────────────────
 
-    private static XmlFactura MapearFactura(Factura f, Empresa e) =>
+    private static XmlFactura MapearFactura(Factura f, Empresa e, ParametrosFacturacion? p) =>
         new()
         {
             InfoTributaria = BuildInfoTributaria(e, f.ClaveAcceso, "01", f.Ambiente, f.Estab, f.PtoEmi, f.Secuencial),
@@ -68,7 +72,7 @@ public class ServicioXml : IServicioXml
             {
                 FechaEmision = f.FechaEmision.ToString("dd/MM/yyyy"),
                 DirEstablecimiento = f.DirEstablecimiento,
-                ObligadoContabilidad = e.ObligadoContabilidad ? "SI" : "NO",
+                ObligadoContabilidad = (p?.ObligadoContabilidad ?? false) ? "SI" : "NO",
                 TipoIdentificacionComprador = f.TipoIdentificacionComprador,
                 RazonSocialComprador = f.RazonSocialComprador,
                 IdentificacionComprador = f.IdentificacionComprador,
@@ -116,14 +120,14 @@ public class ServicioXml : IServicioXml
             InfoAdicional = n.InfoAdicional.Select(MapCampoAdicional).ToList()
         };
 
-    private static XmlRetencion MapearRetencion(Retencion r, Empresa e) =>
+    private static XmlRetencion MapearRetencion(Retencion r, Empresa e, ParametrosFacturacion? p) =>
         new()
         {
             InfoTributaria = BuildInfoTributaria(e, r.ClaveAcceso, "07", r.Ambiente, r.Estab, r.PtoEmi, r.Secuencial),
             InfoCompRetencion = new XmlInfoCompRetencion
             {
                 FechaEmision = r.FechaEmision.ToString("dd/MM/yyyy"),
-                ObligadoContabilidad = e.ObligadoContabilidad ? "SI" : "NO",
+                ObligadoContabilidad = (p?.ObligadoContabilidad ?? false) ? "SI" : "NO",
                 TipoIdentificacionSujeto = r.TipoIdentificacionSujeto,
                 RazonSocialSujeto = r.RazonSocialSujeto,
                 IdentificacionSujeto = r.IdentificacionSujeto,
@@ -302,4 +306,3 @@ public class ServicioXml : IServicioXml
         return Encoding.UTF8.GetString(ms.ToArray());
     }
 }
-

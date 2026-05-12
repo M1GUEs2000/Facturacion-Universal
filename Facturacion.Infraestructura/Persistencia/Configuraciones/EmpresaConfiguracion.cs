@@ -16,9 +16,12 @@ public class EmpresaConfiguracion : IEntityTypeConfiguration<Empresa>
         builder.Property(e => e.Nombre).HasColumnName("nombre").IsRequired();
         builder.Property(e => e.DirMatriz).HasColumnName("dir_matriz").IsRequired();
         builder.Property(e => e.NombreComercial).HasColumnName("nombre_comercial");
-        builder.Property(e => e.ObligadoContabilidad).HasColumnName("obligado_contabilidad").IsRequired();
+        builder.Property(e => e.Logo).HasColumnName("logo");
+        builder.Property(e => e.LogoContentType).HasColumnName("logo_content_type").HasMaxLength(100);
         builder.Property(e => e.CertificadoP12).HasColumnName("certificado_p12").IsRequired();
         builder.Property(e => e.CertPassword).HasColumnName("cert_password").IsRequired();
+        builder.Property(e => e.CuentaId).HasColumnName("cuenta_id").IsRequired();
+        builder.HasOne(e => e.Cuenta).WithMany().HasForeignKey(e => e.CuentaId);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
     }

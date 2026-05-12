@@ -77,7 +77,10 @@ public class EmitirFacturaValidator : AbstractValidator<EmitirFacturaRequest>
         RuleFor(x => x.Estab).NotEmpty().Length(3).Matches(@"^\d+$");
         RuleFor(x => x.PtoEmi).NotEmpty().Length(3).Matches(@"^\d+$");
         RuleFor(x => x.Secuencial).NotEmpty().Length(9).Matches(@"^\d+$");
-        RuleFor(x => x.TipoIdentificacionComprador).NotEmpty();
+        RuleFor(x => x.TipoIdentificacionComprador)
+            .NotEmpty()
+            .Must(TipoIdentificacion.CompradorPermitidos.Contains)
+            .WithMessage("TipoIdentificacionComprador no es un codigo SRI valido.");
         RuleFor(x => x.IdentificacionComprador).NotEmpty();
         RuleFor(x => x.RazonSocialComprador).NotEmpty().MaximumLength(300);
         RuleFor(x => x.ImporteTotal).GreaterThan(0);
@@ -89,6 +92,7 @@ public class EmitirFacturaValidator : AbstractValidator<EmitirFacturaRequest>
             d.RuleFor(x => x.Descripcion).NotEmpty();
             d.RuleFor(x => x.Cantidad).GreaterThan(0);
             d.RuleFor(x => x.PrecioUnitario).GreaterThanOrEqualTo(0);
+            d.RuleFor(x => x.IvaCodigo).IsInEnum();
         });
     }
 }

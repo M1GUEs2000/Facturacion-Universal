@@ -5,6 +5,7 @@ namespace Facturacion.Infraestructura.Persistencia.Contexto;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<Cuenta> Cuentas => Set<Cuenta>();
     public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<Factura> Facturas => Set<Factura>();
     public DbSet<FacturaDetalle> FacturasDetalle => Set<FacturaDetalle>();
@@ -12,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<NotaCreditoDetalle> NotasCreditoDetalle => Set<NotaCreditoDetalle>();
     public DbSet<Retencion> Retenciones => Set<Retencion>();
     public DbSet<RetencionDetalle> RetencionesDetalle => Set<RetencionDetalle>();
+    public DbSet<SecuencialSri> SecuencialesSri => Set<SecuencialSri>();
+    public DbSet<ParametrosFacturacion> ParametrosFacturacion => Set<ParametrosFacturacion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -13,7 +13,7 @@ public static class FacturasEndpoints
     {
         var group = app.MapGroup("/facturas")
             .WithTags("Facturas")
-            .RequireAuthorization();
+            .AllowAnonymous();
 
         group.MapPost("/", Emitir).WithName("EmitirFactura");
 

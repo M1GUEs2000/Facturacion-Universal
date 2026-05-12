@@ -7,8 +7,11 @@ namespace Facturacion.Infraestructura.Persistencia.Repositorios;
 
 public class EmpresasRepositorio(AppDbContext context) : IEmpresasRepositorio
 {
+    public async Task<List<Empresa>> ListarAsync(CancellationToken ct = default)
+        => await context.Empresas.Include(e => e.Cuenta).OrderBy(e => e.Ruc).ToListAsync(ct);
+
     public async Task<Empresa?> ObtenerPorRucAsync(string ruc, CancellationToken ct = default)
-        => await context.Empresas.FirstOrDefaultAsync(e => e.Ruc == ruc, ct);
+        => await context.Empresas.Include(e => e.Cuenta).FirstOrDefaultAsync(e => e.Ruc == ruc, ct);
 
     public async Task<bool> ExisteAsync(string ruc, CancellationToken ct = default)
         => await context.Empresas.AnyAsync(e => e.Ruc == ruc, ct);

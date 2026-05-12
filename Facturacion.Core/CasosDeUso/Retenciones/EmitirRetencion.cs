@@ -42,6 +42,7 @@ public record ComandoEmitirRetencion(
 public class EmitirRetencion(
     IEmpresasRepositorio empresas,
     IRetencionesRepositorio retenciones,
+    IParametrosFacturacionRepositorio parametrosRepo,
     IServicioXml xml,
     IServicioPdf pdf,
     OrquestadorEmision orquestador)
@@ -59,6 +60,8 @@ public class EmitirRetencion(
         if (await retenciones.ExisteClaveAccesoAsync(claveAcceso, ct))
             return Errores.Retencion.ClaveAccesoDuplicada;
 
+        var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
+
         var retencionId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => RetencionDetalle.Crear(
             retencionId, d.Orden, d.CodigoImpuesto, d.CodigoRetencion,
@@ -72,7 +75,7 @@ public class EmitirRetencion(
             cmd.TotalBaseImponible, cmd.TotalRetencionRenta, cmd.TotalRetencionIva, cmd.TotalRetenido,
             cmd.InfoAdicional, detalle, cmd.IpAddress);
 
-        var xmlResult = xml.GenerarXmlRetencion(retencion, empresa);
+        var xmlResult = xml.GenerarXmlRetencion(retencion, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
         return await orquestador.EjecutarAsync(new ParametrosEmision<Retencion>(

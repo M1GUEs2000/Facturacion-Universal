@@ -4,7 +4,7 @@ namespace Facturacion.Infraestructura.Servicios.Xml.Modelos;
 
 // ─── Compartidos ────────────────────────────────────────────────────────────
 
-internal class XmlInfoTributaria
+public class XmlInfoTributaria
 {
     [XmlElement("ambiente")] public string Ambiente { get; set; } = "";
     [XmlElement("tipoEmision")] public string TipoEmision { get; set; } = "1";
@@ -20,7 +20,7 @@ internal class XmlInfoTributaria
     [XmlElement("dirMatriz")] public string DirMatriz { get; set; } = "";
 }
 
-internal class XmlTotalImpuesto
+public class XmlTotalImpuesto
 {
     [XmlElement("codigo")] public string Codigo { get; set; } = "";
     [XmlElement("codigoPorcentaje")] public string CodigoPorcentaje { get; set; } = "";
@@ -29,7 +29,7 @@ internal class XmlTotalImpuesto
     [XmlElement("valor")] public string Valor { get; set; } = "";
 }
 
-internal class XmlImpuestoDetalle
+public class XmlImpuestoDetalle
 {
     [XmlElement("codigo")] public string Codigo { get; set; } = "";
     [XmlElement("codigoPorcentaje")] public string CodigoPorcentaje { get; set; } = "";
@@ -38,7 +38,7 @@ internal class XmlImpuestoDetalle
     [XmlElement("valor")] public string Valor { get; set; } = "";
 }
 
-internal class XmlCampoAdicional
+public class XmlCampoAdicional
 {
     [XmlAttribute("nombre")] public string Nombre { get; set; } = "";
     [XmlText] public string Valor { get; set; } = "";
@@ -47,7 +47,7 @@ internal class XmlCampoAdicional
 // ─── Factura ────────────────────────────────────────────────────────────────
 
 [XmlRoot("factura")]
-internal class XmlFactura
+public class XmlFactura
 {
     [XmlAttribute("id")] public string Id { get; set; } = "comprobante";
     [XmlAttribute("version")] public string Version { get; set; } = "1.1.0";
@@ -58,29 +58,29 @@ internal class XmlFactura
     public bool ShouldSerializeInfoAdicional() => InfoAdicional.Count > 0;
 }
 
-internal class XmlInfoFactura
+public class XmlInfoFactura
 {
     [XmlElement("fechaEmision")] public string FechaEmision { get; set; } = "";
     [XmlElement("dirEstablecimiento")] public string? DirEstablecimiento { get; set; }
     public bool ShouldSerializeDirEstablecimiento() => !string.IsNullOrEmpty(DirEstablecimiento);
     [XmlElement("obligadoContabilidad")] public string ObligadoContabilidad { get; set; } = "";
     [XmlElement("tipoIdentificacionComprador")] public string TipoIdentificacionComprador { get; set; } = "";
+    [XmlElement("guiaRemision")] public string? GuiaRemision { get; set; }
+    public bool ShouldSerializeGuiaRemision() => !string.IsNullOrEmpty(GuiaRemision);
     [XmlElement("razonSocialComprador")] public string RazonSocialComprador { get; set; } = "";
     [XmlElement("identificacionComprador")] public string IdentificacionComprador { get; set; } = "";
     [XmlElement("direccionComprador")] public string? DireccionComprador { get; set; }
     public bool ShouldSerializeDireccionComprador() => !string.IsNullOrEmpty(DireccionComprador);
-    [XmlElement("moneda")] public string Moneda { get; set; } = "DOLAR";
-    [XmlElement("guiaRemision")] public string? GuiaRemision { get; set; }
-    public bool ShouldSerializeGuiaRemision() => !string.IsNullOrEmpty(GuiaRemision);
     [XmlElement("totalSinImpuestos")] public string TotalSinImpuestos { get; set; } = "";
     [XmlElement("totalDescuento")] public string TotalDescuento { get; set; } = "";
     [XmlArray("totalConImpuestos")] [XmlArrayItem("totalImpuesto")] public List<XmlTotalImpuesto> TotalConImpuestos { get; set; } = new();
     [XmlElement("propina")] public string Propina { get; set; } = "";
     [XmlElement("importeTotal")] public string ImporteTotal { get; set; } = "";
+    [XmlElement("moneda")] public string Moneda { get; set; } = "DOLAR";
     [XmlArray("pagos")] [XmlArrayItem("pago")] public List<XmlPago> Pagos { get; set; } = new();
 }
 
-internal class XmlPago
+public class XmlPago
 {
     [XmlElement("formaPago")] public string FormaPago { get; set; } = "";
     [XmlElement("total")] public string Total { get; set; } = "";
@@ -90,7 +90,7 @@ internal class XmlPago
     public bool ShouldSerializeUnidadTiempo() => !string.IsNullOrEmpty(UnidadTiempo);
 }
 
-internal class XmlDetalleFactura
+public class XmlDetalleFactura
 {
     [XmlElement("codigoPrincipal")] public string CodigoPrincipal { get; set; } = "";
     [XmlElement("codigoAuxiliar")] public string? CodigoAuxiliar { get; set; }
@@ -106,7 +106,7 @@ internal class XmlDetalleFactura
 // ─── Nota de Crédito ────────────────────────────────────────────────────────
 
 [XmlRoot("notaCredito")]
-internal class XmlNotaCredito
+public class XmlNotaCredito
 {
     [XmlAttribute("id")] public string Id { get; set; } = "comprobante";
     [XmlAttribute("version")] public string Version { get; set; } = "1.0.0";
@@ -117,7 +117,7 @@ internal class XmlNotaCredito
     public bool ShouldSerializeInfoAdicional() => InfoAdicional.Count > 0;
 }
 
-internal class XmlInfoNotaCredito
+public class XmlInfoNotaCredito
 {
     [XmlElement("fechaEmision")] public string FechaEmision { get; set; } = "";
     [XmlElement("dirEstablecimiento")] public string? DirEstablecimiento { get; set; }
@@ -138,7 +138,7 @@ internal class XmlInfoNotaCredito
 // ─── Retención ──────────────────────────────────────────────────────────────
 
 [XmlRoot("comprobanteRetencion")]
-internal class XmlRetencion
+public class XmlRetencion
 {
     [XmlAttribute("id")] public string Id { get; set; } = "comprobante";
     [XmlAttribute("version")] public string Version { get; set; } = "1.0.0";
@@ -149,7 +149,7 @@ internal class XmlRetencion
     public bool ShouldSerializeInfoAdicional() => InfoAdicional.Count > 0;
 }
 
-internal class XmlInfoCompRetencion
+public class XmlInfoCompRetencion
 {
     [XmlElement("fechaEmision")] public string FechaEmision { get; set; } = "";
     [XmlElement("dirEstablecimiento")] public string? DirEstablecimiento { get; set; }
@@ -161,7 +161,7 @@ internal class XmlInfoCompRetencion
     [XmlElement("periodoFiscal")] public string PeriodoFiscal { get; set; } = "";
 }
 
-internal class XmlImpuestoRetencion
+public class XmlImpuestoRetencion
 {
     [XmlElement("codigo")] public string Codigo { get; set; } = "";
     [XmlElement("codigoRetencion")] public string CodigoRetencion { get; set; } = "";

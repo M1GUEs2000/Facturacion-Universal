@@ -3,6 +3,7 @@ using System;
 using Facturacion.Infraestructura.Persistencia.Contexto;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Facturacion.Infraestructura.Persistencia.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260511203947_MoveEmpresaFiscalFieldsToParametros")]
+    partial class MoveEmpresaFiscalFieldsToParametros
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,43 +25,6 @@ namespace Facturacion.Infraestructura.Persistencia.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Facturacion.Core.Entidades.Cuenta", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTimeOffset?>("FechaExpira")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_expira");
-
-                    b.Property<int>("MaxEmpresas")
-                        .HasColumnType("integer")
-                        .HasColumnName("max_empresas");
-
-                    b.Property<int>("MaxUsuarios")
-                        .HasColumnType("integer")
-                        .HasColumnName("max_usuarios");
-
-                    b.Property<string>("Plan")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("plan");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("cuentas", "facturacion");
-                });
 
             modelBuilder.Entity("Facturacion.Core.Entidades.Empresa", b =>
                 {
@@ -104,30 +70,13 @@ namespace Facturacion.Infraestructura.Persistencia.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nombre_comercial");
 
-                    b.Property<Guid>("CuentaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cuenta_id");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Ruc");
 
-                    b.HasIndex("CuentaId");
-
                     b.ToTable("empresas", "facturacion");
-                });
-
-            modelBuilder.Entity("Facturacion.Core.Entidades.Empresa", b =>
-                {
-                    b.HasOne("Facturacion.Core.Entidades.Cuenta", "Cuenta")
-                        .WithMany()
-                        .HasForeignKey("CuentaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cuenta");
                 });
 
             modelBuilder.Entity("Facturacion.Core.Entidades.Factura", b =>

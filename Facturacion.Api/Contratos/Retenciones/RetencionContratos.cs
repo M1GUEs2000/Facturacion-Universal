@@ -58,18 +58,30 @@ public class EmitirRetencionValidator : AbstractValidator<EmitirRetencionRequest
         RuleFor(x => x.Estab).NotEmpty().Length(3).Matches(@"^\d+$");
         RuleFor(x => x.PtoEmi).NotEmpty().Length(3).Matches(@"^\d+$");
         RuleFor(x => x.Secuencial).NotEmpty().Length(9).Matches(@"^\d+$");
-        RuleFor(x => x.TipoIdentificacionSujeto).NotEmpty();
+        RuleFor(x => x.TipoIdentificacionSujeto)
+            .NotEmpty()
+            .Must(TipoIdentificacion.SujetoRetenidoPermitidos.Contains)
+            .WithMessage("TipoIdentificacionSujeto no es un codigo SRI valido para retenciones.");
         RuleFor(x => x.IdentificacionSujeto).NotEmpty();
         RuleFor(x => x.RazonSocialSujeto).NotEmpty().MaximumLength(300);
         RuleFor(x => x.PeriodoFiscal).NotEmpty().Matches(@"^\d{2}/\d{4}$")
             .WithMessage("PeriodoFiscal debe tener formato MM/YYYY.");
-        RuleFor(x => x.TotalRetenido).GreaterThan(0);
+        RuleFor(x => x.TotalRetenido).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Detalle).NotEmpty();
         RuleForEach(x => x.Detalle).ChildRules(d =>
         {
-            d.RuleFor(x => x.CodigoImpuesto).NotEmpty();
-            d.RuleFor(x => x.CodigoRetencion).NotEmpty();
+            d.RuleFor(x => x.CodigoImpuesto)
+                .NotEmpty()
+                .Must(CatalogoRetencionesSri.EsTipoImpuestoValido)
+                .WithMessage("CodigoImpuesto debe ser 1 (RENTA) o 2 (IVA).");
+            d.RuleFor(x => x.CodigoRetencion)
+                .NotEmpty()
+                .Must((detalle, codigoRetencion) =>
+                    CatalogoRetencionesSri.EsCodigoRetencionValido(detalle.CodigoImpuesto, codigoRetencion))
+                .WithMessage("CodigoRetencion no corresponde al catalogo SRI del impuesto seleccionado.");
             d.RuleFor(x => x.BaseImponible).GreaterThan(0);
+            d.RuleFor(x => x.PorcentajeRetener).GreaterThanOrEqualTo(0);
+            d.RuleFor(x => x.ValorRetenido).GreaterThanOrEqualTo(0);
             d.RuleFor(x => x.NumDocSustento).NotEmpty();
         });
     }

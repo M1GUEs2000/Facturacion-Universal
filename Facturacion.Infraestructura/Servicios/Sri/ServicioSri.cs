@@ -4,10 +4,11 @@ using ErrorOr;
 using Facturacion.Core;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces.Servicios;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Infraestructura.Servicios.Sri;
 
-public class ServicioSri(IHttpClientFactory httpClientFactory) : IServicioSri
+public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioSri> logger) : IServicioSri
 {
     private const string RecepcionPruebas =
         "https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl";
@@ -35,12 +36,14 @@ public class ServicioSri(IHttpClientFactory httpClientFactory) : IServicioSri
         {
             responseText = await PostSoapAsync(endpoint, soap, ct);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
+            logger.LogError(ex, "Error HTTP enviando documento al SRI ({Endpoint})", endpoint);
             return Errores.Sri.ErrorComunicacion;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error inesperado enviando documento al SRI");
             return Errores.Sri.ErrorComunicacion;
         }
 
@@ -51,7 +54,7 @@ public class ServicioSri(IHttpClientFactory httpClientFactory) : IServicioSri
     {
         XDocument doc;
         try { doc = XDocument.Parse(responseText); }
-        catch { return Errores.Sri.ErrorComunicacion; }
+        catch (Exception) { return Errores.Sri.ErrorComunicacion; }
 
         var mensajes = ExtraerMensajesSri(doc);
 
@@ -87,12 +90,14 @@ public class ServicioSri(IHttpClientFactory httpClientFactory) : IServicioSri
             {
                 responseText = await PostSoapAsync(endpoint, soap, ct);
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                logger.LogError(ex, "Error HTTP consultando autorizacion SRI ({Endpoint})", endpoint);
                 return Errores.Sri.ErrorComunicacion;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error inesperado consultando autorizacion SRI");
                 return Errores.Sri.ErrorComunicacion;
             }
 
@@ -120,7 +125,7 @@ public class ServicioSri(IHttpClientFactory httpClientFactory) : IServicioSri
     {
         XDocument doc;
         try { doc = XDocument.Parse(responseText); }
-        catch { return Errores.Sri.ErrorComunicacion; }
+        catch (Exception) { return Errores.Sri.ErrorComunicacion; }
 
         var mensajesGlobales = ExtraerMensajesSri(doc);
 

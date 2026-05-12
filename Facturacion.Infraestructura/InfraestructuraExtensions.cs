@@ -22,10 +22,13 @@ public static class InfraestructuraExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddScoped<ICuentasRepositorio, CuentasRepositorio>();
         services.AddScoped<IEmpresasRepositorio, EmpresasRepositorio>();
         services.AddScoped<IFacturasRepositorio, FacturasRepositorio>();
         services.AddScoped<INotasCreditoRepositorio, NotasCreditoRepositorio>();
         services.AddScoped<IRetencionesRepositorio, RetencionesRepositorio>();
+        services.AddScoped<ISecuencialesSriRepositorio, SecuencialesSriRepositorio>();
+        services.AddScoped<IParametrosFacturacionRepositorio, ParametrosFacturacionRepositorio>();
 
         // Servicios
         services.AddScoped<IServicioXml, ServicioXml>();

@@ -55,6 +55,7 @@ public record ComandoEmitirFactura(
 public class EmitirFactura(
     IEmpresasRepositorio empresas,
     IFacturasRepositorio facturas,
+    IParametrosFacturacionRepositorio parametrosRepo,
     IServicioXml xml,
     IServicioPdf pdf,
     OrquestadorEmision orquestador)
@@ -72,6 +73,8 @@ public class EmitirFactura(
         if (await facturas.ExisteClaveAccesoAsync(claveAcceso, ct))
             return Errores.Factura.ClaveAccesoDuplicada;
 
+        var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
+
         var facturaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => FacturaDetalle.Crear(
             facturaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
@@ -87,7 +90,7 @@ public class EmitirFactura(
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.Propina, cmd.ImporteTotal,
             cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle, cmd.IpAddress);
 
-        var xmlResult = xml.GenerarXmlFactura(factura, empresa);
+        var xmlResult = xml.GenerarXmlFactura(factura, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
         return await orquestador.EjecutarAsync(new ParametrosEmision<Factura>(
