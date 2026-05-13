@@ -43,6 +43,7 @@ public class EmitirRetencion(
     IEmpresasRepositorio empresas,
     IRetencionesRepositorio retenciones,
     IParametrosFacturacionRepositorio parametrosRepo,
+    ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
     OrquestadorEmision orquestador)
@@ -85,6 +86,11 @@ public class EmitirRetencion(
             $"{empresa.Ruc}/retenciones",
             empresa.CertificadoP12, empresa.CertPassword,
             (r, t) => pdf.GenerarRideRetencionAsync(r, t),
-            (r, t) => retenciones.ActualizarAsync(r, t)), ct);
+            (r, t) => retenciones.ActualizarAsync(r, t),
+            async t =>
+            {
+                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "07", t);
+                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
+            }), ct);
     }
 }

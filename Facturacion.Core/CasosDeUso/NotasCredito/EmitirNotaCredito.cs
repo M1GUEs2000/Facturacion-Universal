@@ -57,6 +57,7 @@ public record ComandoEmitirNotaCredito(
 public class EmitirNotaCredito(
     IEmpresasRepositorio empresas,
     INotasCreditoRepositorio notasCredito,
+    ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
     OrquestadorEmision orquestador)
@@ -100,6 +101,11 @@ public class EmitirNotaCredito(
             $"{empresa.Ruc}/notas-credito",
             empresa.CertificadoP12, empresa.CertPassword,
             (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
-            (n, t) => notasCredito.ActualizarAsync(n, t)), ct);
+            (n, t) => notasCredito.ActualizarAsync(n, t),
+            async t =>
+            {
+                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "04", t);
+                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
+            }), ct);
     }
 }

@@ -2,6 +2,8 @@ using Facturacion.Api.Extensions;
 using Facturacion.Infraestructura;
 using Serilog;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();

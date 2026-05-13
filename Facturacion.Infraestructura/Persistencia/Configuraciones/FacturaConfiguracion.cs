@@ -56,7 +56,7 @@ public class FacturaConfiguracion : IEntityTypeConfiguration<Factura>
         builder.Property(f => f.EstadoCorreo).HasColumnName("estado_correo").HasMaxLength(20).HasConversion(ConvertersEfCore.EstadoCorreoConverter).IsRequired();
         builder.Property(f => f.NumeroAutorizacion).HasColumnName("numero_autorizacion").HasMaxLength(49);
         builder.Property(f => f.FechaAutorizacion).HasColumnName("fecha_autorizacion");
-        builder.Property(f => f.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("jsonb");
+        builder.Property(f => f.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("text");
         builder.Property(f => f.XmlFirmadoPath).HasColumnName("xml_firmado_path");
         builder.Property(f => f.XmlAutorizadoPath).HasColumnName("xml_autorizado_path");
         builder.Property(f => f.PdfPath).HasColumnName("pdf_path");

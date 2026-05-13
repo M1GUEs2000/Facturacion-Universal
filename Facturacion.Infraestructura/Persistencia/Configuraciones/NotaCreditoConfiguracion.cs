@@ -52,7 +52,7 @@ public class NotaCreditoConfiguracion : IEntityTypeConfiguration<NotaCredito>
         builder.Property(n => n.EstadoCorreo).HasColumnName("estado_correo").HasMaxLength(20).HasConversion(ConvertersEfCore.EstadoCorreoConverter).IsRequired();
         builder.Property(n => n.NumeroAutorizacion).HasColumnName("numero_autorizacion").HasMaxLength(49);
         builder.Property(n => n.FechaAutorizacion).HasColumnName("fecha_autorizacion");
-        builder.Property(n => n.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("jsonb");
+        builder.Property(n => n.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("text");
         builder.Property(n => n.XmlFirmadoPath).HasColumnName("xml_firmado_path");
         builder.Property(n => n.XmlAutorizadoPath).HasColumnName("xml_autorizado_path");
         builder.Property(n => n.PdfPath).HasColumnName("pdf_path");

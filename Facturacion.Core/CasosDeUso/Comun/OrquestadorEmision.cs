@@ -15,7 +15,8 @@ public record ParametrosEmision<TDoc>(
     byte[] CertificadoP12,
     string CertPassword,
     Func<TDoc, CancellationToken, Task<ErrorOr<byte[]>>> GenerarPdf,
-    Func<TDoc, CancellationToken, Task> Persistir)
+    Func<TDoc, CancellationToken, Task> Persistir,
+    Func<CancellationToken, Task>? IncrementarSecuencial = null)
     where TDoc : IDocumentoEmitible;
 
 public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServicioStorage storage)
@@ -37,10 +38,14 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
 
         // ── 2. Recepción SRI ──────────────────────────────────────────────────
         var recepcionResult = await sri.EnviarDocumentoAsync(firmadoResult.Value, p.Ambiente, ct);
-        if (recepcionResult.IsError) return recepcionResult.Errors;
+        if (recepcionResult.IsError) 
+            return recepcionResult.Errors;
 
         p.Documento.RegistrarEnvioSri();
         await p.Persistir(p.Documento, ct);
+
+        if (p.IncrementarSecuencial is not null)
+            await p.IncrementarSecuencial(ct);
 
         // ── 3. Autorización SRI ───────────────────────────────────────────────
         var autorizacionResult = await sri.ConsultarAutorizacionAsync(p.ClaveAcceso, p.Ambiente, ct);

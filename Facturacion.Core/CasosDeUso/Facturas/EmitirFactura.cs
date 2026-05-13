@@ -56,6 +56,7 @@ public class EmitirFactura(
     IEmpresasRepositorio empresas,
     IFacturasRepositorio facturas,
     IParametrosFacturacionRepositorio parametrosRepo,
+    ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
     OrquestadorEmision orquestador)
@@ -100,6 +101,11 @@ public class EmitirFactura(
             $"{empresa.Ruc}/facturas",
             empresa.CertificadoP12, empresa.CertPassword,
             (f, t) => pdf.GenerarRideFacturaAsync(f, t),
-            (f, t) => facturas.ActualizarAsync(f, t)), ct);
+            (f, t) => facturas.ActualizarAsync(f, t),
+            async t =>
+            {
+                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "01", t);
+                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
+            }), ct);
     }
 }

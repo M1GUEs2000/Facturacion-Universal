@@ -44,7 +44,7 @@ public class RetencionConfiguracion : IEntityTypeConfiguration<Retencion>
         builder.Property(r => r.EstadoCorreo).HasColumnName("estado_correo").HasMaxLength(20).HasConversion(ConvertersEfCore.EstadoCorreoConverter).IsRequired();
         builder.Property(r => r.NumeroAutorizacion).HasColumnName("numero_autorizacion").HasMaxLength(49);
         builder.Property(r => r.FechaAutorizacion).HasColumnName("fecha_autorizacion");
-        builder.Property(r => r.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("jsonb");
+        builder.Property(r => r.SriRespuesta).HasColumnName("sri_respuesta").HasColumnType("text");
         builder.Property(r => r.XmlFirmadoPath).HasColumnName("xml_firmado_path");
         builder.Property(r => r.XmlAutorizadoPath).HasColumnName("xml_autorizado_path");
         builder.Property(r => r.PdfPath).HasColumnName("pdf_path");

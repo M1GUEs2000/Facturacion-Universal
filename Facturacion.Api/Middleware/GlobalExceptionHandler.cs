@@ -10,12 +10,15 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
     {
         logger.LogError(exception, "Excepción no manejada");
 
+        var inner = exception;
+        while (inner.InnerException is not null) inner = inner.InnerException;
+
         ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await ctx.Response.WriteAsJsonAsync(new ProblemDetails
         {
             Status = 500,
             Title = exception.GetType().Name,
-            Detail = exception.Message
+            Detail = inner == exception ? exception.Message : $"{exception.Message} → {inner.GetType().Name}: {inner.Message}"
         }, ct);
 
         return true;
