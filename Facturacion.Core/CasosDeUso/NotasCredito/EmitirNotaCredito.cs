@@ -60,6 +60,7 @@ public class EmitirNotaCredito(
     ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorEmision orquestador)
 {
     public async Task<ErrorOr<NotaCredito>> EjecutarAsync(ComandoEmitirNotaCredito cmd, CancellationToken ct = default)
@@ -67,6 +68,9 @@ public class EmitirNotaCredito(
         var empresa = await empresas.ObtenerPorRucAsync(cmd.EmpresaRuc, ct);
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
+
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.NotaCredito, empresa.Ruc,
@@ -99,7 +103,7 @@ public class EmitirNotaCredito(
         return await orquestador.EjecutarAsync(new ParametrosEmision<NotaCredito>(
             nota, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/notas-credito",
-            empresa.CertificadoP12, empresa.CertPassword,
+            certResult.Value, empresa.CertPassword,
             (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
             (n, t) => notasCredito.ActualizarAsync(n, t),
             async t =>

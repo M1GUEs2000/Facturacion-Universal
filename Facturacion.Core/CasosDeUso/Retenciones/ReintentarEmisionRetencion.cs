@@ -12,6 +12,7 @@ public class ReintentarEmisionRetencion(
     IParametrosFacturacionRepositorio parametrosRepo,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorReintento orquestador)
 {
     public async Task<ErrorOr<Retencion>> EjecutarAsync(Guid retencionId, CancellationToken ct = default)
@@ -25,6 +26,9 @@ public class ReintentarEmisionRetencion(
         var empresa = await empresas.ObtenerPorRucAsync(retencion.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
 
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
+
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(retencion.EmpresaRuc, ct);
 
         return await orquestador.EjecutarAsync(new ParametrosReintento<Retencion>(
@@ -32,7 +36,7 @@ public class ReintentarEmisionRetencion(
             retencion.ClaveAcceso,
             retencion.Ambiente,
             $"{empresa.Ruc}/retenciones",
-            empresa.CertificadoP12,
+            certResult.Value,
             empresa.CertPassword,
             (r, _) => xml.GenerarXmlRetencion(r, empresa, parametros),
             (r, t) => pdf.GenerarRideRetencionAsync(r, t),

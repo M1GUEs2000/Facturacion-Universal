@@ -64,4 +64,4 @@ Thumbs.db
 desktop.ini
 
 # Storage local (generado en runtime)
-storage/
+Facturacion.Api/storage/

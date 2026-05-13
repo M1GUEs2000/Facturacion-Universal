@@ -59,6 +59,7 @@ public class EmitirFactura(
     ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorEmision orquestador)
 {
     public async Task<ErrorOr<Factura>> EjecutarAsync(ComandoEmitirFactura cmd, CancellationToken ct = default)
@@ -66,6 +67,9 @@ public class EmitirFactura(
         var empresa = await empresas.ObtenerPorRucAsync(cmd.EmpresaRuc, ct);
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
+
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Factura, empresa.Ruc,
@@ -99,7 +103,7 @@ public class EmitirFactura(
         return await orquestador.EjecutarAsync(new ParametrosEmision<Factura>(
             factura, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/facturas",
-            empresa.CertificadoP12, empresa.CertPassword,
+            certResult.Value, empresa.CertPassword,
             (f, t) => pdf.GenerarRideFacturaAsync(f, t),
             (f, t) => facturas.ActualizarAsync(f, t),
             async t =>

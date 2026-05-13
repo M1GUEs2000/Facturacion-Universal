@@ -8,9 +8,9 @@ public class Empresa
     public string Nombre { get; private set; } = null!;
     public string DirMatriz { get; private set; } = null!;
     public string? NombreComercial { get; private set; }
-    public byte[]? Logo { get; private set; }
+    public string? LogoPath { get; private set; }
     public string? LogoContentType { get; private set; }
-    public byte[] CertificadoP12 { get; private set; } = null!;
+    public string CertificadoPath { get; private set; } = null!;
     public string CertPassword { get; private set; } = null!;
     public Guid CuentaId { get; private set; }
     public Cuenta? Cuenta { get; private set; }
@@ -21,11 +21,11 @@ public class Empresa
         string ruc,
         string nombre,
         string dirMatriz,
-        byte[] certificadoP12,
+        string certificadoPath,
         string certPassword,
         Guid cuentaId,
         string? nombreComercial = null,
-        byte[]? logo = null,
+        string? logoPath = null,
         string? logoContentType = null)
     {
         return new Empresa
@@ -34,9 +34,9 @@ public class Empresa
             Nombre = nombre,
             DirMatriz = dirMatriz,
             NombreComercial = nombreComercial,
-            Logo = logo,
+            LogoPath = logoPath,
             LogoContentType = logoContentType,
-            CertificadoP12 = certificadoP12,
+            CertificadoPath = certificadoPath,
             CertPassword = certPassword,
             CuentaId = cuentaId,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -44,9 +44,9 @@ public class Empresa
         };
     }
 
-    public void ActualizarCertificado(byte[] certificadoP12, string certPassword)
+    public void ActualizarCertificado(string certificadoPath, string certPassword)
     {
-        CertificadoP12 = certificadoP12;
+        CertificadoPath = certificadoPath;
         CertPassword = certPassword;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
@@ -68,9 +68,9 @@ public class Empresa
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void ActualizarLogo(byte[]? logo, string? contentType)
+    public void ActualizarLogo(string? logoPath, string? contentType)
     {
-        Logo = logo;
+        LogoPath = logoPath;
         LogoContentType = contentType;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

@@ -13,6 +13,7 @@ public class ReintentarEmisionFactura(
     IParametrosFacturacionRepositorio parametrosRepo,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorReintento orquestador)
 {
     public async Task<ErrorOr<Factura>> EjecutarAsync(Guid facturaId, CancellationToken ct = default)
@@ -26,6 +27,9 @@ public class ReintentarEmisionFactura(
         var empresa = await empresas.ObtenerPorRucAsync(factura.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
 
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
+
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(factura.EmpresaRuc, ct);
 
         return await orquestador.EjecutarAsync(new ParametrosReintento<Factura>(
@@ -33,7 +37,7 @@ public class ReintentarEmisionFactura(
             factura.ClaveAcceso,
             factura.Ambiente,
             $"{empresa.Ruc}/facturas",
-            empresa.CertificadoP12,
+            certResult.Value,
             empresa.CertPassword,
             (f, _) => xml.GenerarXmlFactura(f, empresa, parametros),
             (f, t) => pdf.GenerarRideFacturaAsync(f, t),

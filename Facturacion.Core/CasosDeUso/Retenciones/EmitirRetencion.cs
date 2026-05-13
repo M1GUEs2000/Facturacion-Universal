@@ -46,6 +46,7 @@ public class EmitirRetencion(
     ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorEmision orquestador)
 {
     public async Task<ErrorOr<Retencion>> EjecutarAsync(ComandoEmitirRetencion cmd, CancellationToken ct = default)
@@ -53,6 +54,9 @@ public class EmitirRetencion(
         var empresa = await empresas.ObtenerPorRucAsync(cmd.EmpresaRuc, ct);
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
+
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Retencion, empresa.Ruc,
@@ -84,7 +88,7 @@ public class EmitirRetencion(
         return await orquestador.EjecutarAsync(new ParametrosEmision<Retencion>(
             retencion, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/retenciones",
-            empresa.CertificadoP12, empresa.CertPassword,
+            certResult.Value, empresa.CertPassword,
             (r, t) => pdf.GenerarRideRetencionAsync(r, t),
             (r, t) => retenciones.ActualizarAsync(r, t),
             async t =>

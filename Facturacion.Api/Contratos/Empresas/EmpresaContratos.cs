@@ -56,7 +56,7 @@ public record EmpresaResponse(
 {
     public static EmpresaResponse From(Empresa e) =>
         new(e.Ruc, e.Nombre, e.DirMatriz, e.NombreComercial,
-            e.Logo is { Length: > 0 }, e.LogoContentType,
+            e.LogoPath is not null, e.LogoContentType,
             e.Cuenta is not null
                 ? new CuentaInfo(e.Cuenta.Id, e.Cuenta.Plan, e.Cuenta.MaxEmpresas, e.Cuenta.MaxUsuarios, e.Cuenta.FechaExpira)
                 : null,

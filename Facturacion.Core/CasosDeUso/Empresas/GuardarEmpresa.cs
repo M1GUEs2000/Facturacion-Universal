@@ -1,5 +1,6 @@
 using ErrorOr;
 using Facturacion.Core.Interfaces.Repositorios;
+using Facturacion.Core.Interfaces.Servicios;
 
 namespace Facturacion.Core.CasosDeUso.Empresas;
 
@@ -13,7 +14,10 @@ public record ComandoGuardarEmpresa(
     byte[]? Logo = null,
     string? LogoContentType = null);
 
-public class GuardarEmpresa(IEmpresasRepositorio empresas, ICuentasRepositorio cuentas)
+public class GuardarEmpresa(
+    IEmpresasRepositorio empresas,
+    ICuentasRepositorio cuentas,
+    IServicioStorageFirmaYLogo storage)
 {
     public async Task<ErrorOr<Entidades.Empresa>> EjecutarAsync(ComandoGuardarEmpresa cmd, CancellationToken ct = default)
     {
@@ -28,10 +32,22 @@ public class GuardarEmpresa(IEmpresasRepositorio empresas, ICuentasRepositorio c
             if (cuenta is null)
                 return Error.NotFound("Cuenta.NoEncontrada", "No existe ninguna cuenta configurada.");
 
+            var certPath = $"{cmd.Ruc}/certificado.p12";
+            var certResult = await storage.GuardarAsync(cmd.CertificadoP12, certPath, ct);
+            if (certResult.IsError) return certResult.Errors;
+
+            string? logoPath = null;
+            if (cmd.Logo is not null)
+            {
+                logoPath = $"{cmd.Ruc}/logo";
+                var logoResult = await storage.GuardarAsync(cmd.Logo, logoPath, ct);
+                if (logoResult.IsError) return logoResult.Errors;
+            }
+
             empresa = Entidades.Empresa.Crear(
                 cmd.Ruc, cmd.Nombre, cmd.DirMatriz,
-                cmd.CertificadoP12, cmd.CertPassword, cuenta.Id,
-                cmd.NombreComercial, cmd.Logo, cmd.LogoContentType);
+                certResult.Value, cmd.CertPassword!, cuenta.Id,
+                cmd.NombreComercial, logoPath, cmd.LogoContentType);
 
             await empresas.AgregarAsync(empresa, ct);
             return empresa;
@@ -40,10 +56,20 @@ public class GuardarEmpresa(IEmpresasRepositorio empresas, ICuentasRepositorio c
         empresa.ActualizarDatos(cmd.Nombre, cmd.DirMatriz, cmd.NombreComercial);
 
         if (cmd.CertificadoP12 is not null && !string.IsNullOrWhiteSpace(cmd.CertPassword))
-            empresa.ActualizarCertificado(cmd.CertificadoP12, cmd.CertPassword);
+        {
+            var certPath = $"{cmd.Ruc}/certificado.p12";
+            var certResult = await storage.GuardarAsync(cmd.CertificadoP12, certPath, ct);
+            if (certResult.IsError) return certResult.Errors;
+            empresa.ActualizarCertificado(certResult.Value, cmd.CertPassword!);
+        }
 
         if (cmd.Logo is not null)
-            empresa.ActualizarLogo(cmd.Logo, cmd.LogoContentType);
+        {
+            var logoPath = $"{cmd.Ruc}/logo";
+            var logoResult = await storage.GuardarAsync(cmd.Logo, logoPath, ct);
+            if (logoResult.IsError) return logoResult.Errors;
+            empresa.ActualizarLogo(logoResult.Value, cmd.LogoContentType);
+        }
 
         await empresas.ActualizarAsync(empresa, ct);
         return empresa;

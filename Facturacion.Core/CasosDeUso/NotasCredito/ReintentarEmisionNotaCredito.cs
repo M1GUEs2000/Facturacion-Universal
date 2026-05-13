@@ -11,6 +11,7 @@ public class ReintentarEmisionNotaCredito(
     INotasCreditoRepositorio notasCredito,
     IServicioXml xml,
     IServicioPdf pdf,
+    IServicioStorageFirmaYLogo storageFirma,
     OrquestadorReintento orquestador)
 {
     public async Task<ErrorOr<NotaCredito>> EjecutarAsync(Guid notaId, CancellationToken ct = default)
@@ -24,12 +25,15 @@ public class ReintentarEmisionNotaCredito(
         var empresa = await empresas.ObtenerPorRucAsync(nota.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
 
+        var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
+        if (certResult.IsError) return certResult.Errors;
+
         return await orquestador.EjecutarAsync(new ParametrosReintento<NotaCredito>(
             nota,
             nota.ClaveAcceso,
             nota.Ambiente,
             $"{empresa.Ruc}/notas-credito",
-            empresa.CertificadoP12,
+            certResult.Value,
             empresa.CertPassword,
             (n, _) => xml.GenerarXmlNotaCredito(n, empresa),
             (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
