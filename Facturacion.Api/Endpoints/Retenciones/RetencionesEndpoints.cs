@@ -1,7 +1,10 @@
 using Facturacion.Api.Contratos.Retenciones;
 using Facturacion.Api.Extensions;
+using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Retenciones;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Enums;
+using Facturacion.Core.Metodos;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,9 +19,46 @@ public static class RetencionesEndpoints
             .RequireAuthorization();
 
         group.MapPost("/", Emitir).WithName("EmitirRetencion");
+        group.MapPost("/preview", Preview).WithName("PreviewRetencion");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarRetencion");
 
         return app;
+    }
+
+    private static async Task<IResult> Preview(
+        [FromBody] EmitirRetencionRequest req,
+        [FromServices] GenerarPreviewPdf useCase,
+        [FromServices] IValidator<EmitirRetencionRequest> validator,
+        CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(req, ct);
+        if (!validation.IsValid)
+            return Results.ValidationProblem(validation.ToDictionary());
+
+        var claveAcceso = GeneradorClaveAcceso.Generar(
+            req.FechaEmision, TipoDocumentoSri.Retencion, req.EmpresaRuc,
+            req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial);
+
+        var retencionId = Guid.NewGuid();
+        var detalle = req.Detalle
+            .Select(d => RetencionDetalle.Crear(
+                retencionId, d.Orden, d.CodigoImpuesto, d.CodigoRetencion,
+                d.BaseImponible, d.PorcentajeRetener, d.ValorRetenido,
+                d.CodDocSustento, d.NumDocSustento, d.FechaEmisionDocSustento))
+            .ToList();
+
+        var retencion = Retencion.Crear(
+            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial, claveAcceso,
+            req.FechaEmision, req.TipoIdentificacionSujeto, req.IdentificacionSujeto,
+            req.RazonSocialSujeto, req.DireccionSujeto, req.PeriodoFiscal,
+            req.TotalBaseImponible, req.TotalRetencionRenta, req.TotalRetencionIva, req.TotalRetenido,
+            req.InfoAdicional.Select(i => new InfoAdicional(i.Nombre, i.Valor)).ToList(),
+            detalle);
+
+        var result = await useCase.EjecutarAsync(req.EmpresaRuc, retencion, ct);
+        return result.Match(
+            bytes => Results.File(bytes, "application/pdf", "preview-retencion.pdf"),
+            errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Reintentar(

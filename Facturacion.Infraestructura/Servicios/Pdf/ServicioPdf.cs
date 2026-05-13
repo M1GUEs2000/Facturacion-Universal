@@ -401,9 +401,9 @@ public class ServicioPdf : IServicioPdf
                 table.Cell().Element(Td).Text(item.CodigoPrincipal).FontSize(7);
                 table.Cell().Element(Td).Text(item.CodigoAuxiliar ?? string.Empty).FontSize(7);
                 table.Cell().Element(Td).Text(item.Descripcion).FontSize(7);
-                table.Cell().Element(Td).AlignRight().Text(item.PrecioUnitario.ToString("0.000000")).FontSize(7);
-                table.Cell().Element(Td).AlignRight().Text(item.Descuento.ToString("0.00")).FontSize(7);
-                table.Cell().Element(Td).AlignRight().Text(item.PrecioTotal.ToString("0.00")).FontSize(7);
+                table.Cell().Element(Td).AlignRight().Text(M(item.PrecioUnitario)).FontSize(7);
+                table.Cell().Element(Td).AlignRight().Text(M(item.Descuento)).FontSize(7);
+                table.Cell().Element(Td).AlignRight().Text(M(item.PrecioTotal)).FontSize(7);
             }
         });
     }
@@ -453,9 +453,9 @@ public class ServicioPdf : IServicioPdf
                 table.Cell().Element(Td).AlignCenter().Text(item.FechaEmisionDocSustento.ToString("dd/MM/yyyy")).FontSize(7);
                 table.Cell().Element(Td).AlignCenter().Text(item.CodigoImpuesto).FontSize(7);
                 table.Cell().Element(Td).AlignCenter().Text(item.CodigoRetencion).FontSize(7);
-                table.Cell().Element(Td).AlignRight().Text(item.BaseImponible.ToString("0.00")).FontSize(7);
+                table.Cell().Element(Td).AlignRight().Text(M(item.BaseImponible)).FontSize(7);
                 table.Cell().Element(Td).AlignRight().Text(item.PorcentajeRetener.ToString("0.##") + "%").FontSize(7);
-                table.Cell().Element(Td).AlignRight().Text(item.ValorRetenido.ToString("0.00")).FontSize(7);
+                table.Cell().Element(Td).AlignRight().Text(M(item.ValorRetenido)).FontSize(7);
             }
         });
     }
@@ -479,21 +479,21 @@ public class ServicioPdf : IServicioPdf
                     var label = grupo.Key == 0
                         ? "SUBTOTAL 0%:"
                         : $"SUBTOTAL IVA {grupo.Key:0.##}%:";
-                    RenderFilaTotales(col, label, grupo.Sum(d => d.PrecioTotalSinImpuesto).ToString("0.00"));
+                    RenderFilaTotales(col, label, M(grupo.Sum(d => d.PrecioTotalSinImpuesto)));
                 }
 
-                RenderFilaTotales(col, "DESCUENTO:", f.TotalDescuento.ToString("0.00"));
+                RenderFilaTotales(col, "DESCUENTO:", M(f.TotalDescuento));
 
                 if (f.BaseImponibleIce.HasValue && f.BaseImponibleIce > 0)
-                    RenderFilaTotales(col, "ICE:", f.ValorIce!.Value.ToString("0.00"));
+                    RenderFilaTotales(col, "ICE:", M(f.ValorIce!.Value));
 
                 foreach (var grupo in gruposIva.Where(g => g.Key > 0))
-                    RenderFilaTotales(col, $"IVA {grupo.Key:0.##}%:", grupo.Sum(d => d.IvaValor).ToString("0.00"));
+                    RenderFilaTotales(col, $"IVA {grupo.Key:0.##}%:", M(grupo.Sum(d => d.IvaValor)));
 
                 if (f.Propina > 0)
-                    RenderFilaTotales(col, "PROPINA:", f.Propina.ToString("0.00"));
+                    RenderFilaTotales(col, "PROPINA:", M(f.Propina));
 
-                RenderFilaTotales(col, "VALOR TOTAL:", f.ImporteTotal.ToString("0.00"), bold: true);
+                RenderFilaTotales(col, "VALOR TOTAL:", M(f.ImporteTotal), bold: true);
             });
         });
     }
@@ -517,18 +517,18 @@ public class ServicioPdf : IServicioPdf
                     var label = grupo.Key == 0
                         ? "SUBTOTAL 0%:"
                         : $"SUBTOTAL IVA {grupo.Key:0.##}%:";
-                    RenderFilaTotales(col, label, grupo.Sum(d => d.PrecioTotalSinImpuesto).ToString("0.00"));
+                    RenderFilaTotales(col, label, M(grupo.Sum(d => d.PrecioTotalSinImpuesto)));
                 }
 
-                RenderFilaTotales(col, "DESCUENTO:", nc.TotalDescuento.ToString("0.00"));
+                RenderFilaTotales(col, "DESCUENTO:", M(nc.TotalDescuento));
 
                 if (nc.BaseImponibleIce.HasValue && nc.BaseImponibleIce > 0)
-                    RenderFilaTotales(col, "ICE:", nc.ValorIce!.Value.ToString("0.00"));
+                    RenderFilaTotales(col, "ICE:", M(nc.ValorIce!.Value));
 
                 foreach (var grupo in gruposIva.Where(g => g.Key > 0))
-                    RenderFilaTotales(col, $"IVA {grupo.Key:0.##}%:", grupo.Sum(d => d.IvaValor).ToString("0.00"));
+                    RenderFilaTotales(col, $"IVA {grupo.Key:0.##}%:", M(grupo.Sum(d => d.IvaValor)));
 
-                RenderFilaTotales(col, "VALOR DE MODIFICACIÓN:", nc.ValorModificacion.ToString("0.00"), bold: true);
+                RenderFilaTotales(col, "VALOR DE MODIFICACIÓN:", M(nc.ValorModificacion), bold: true);
             });
         });
     }
@@ -542,9 +542,9 @@ public class ServicioPdf : IServicioPdf
             row.RelativeItem(2);
             row.RelativeItem(3).Column(col =>
             {
-                RenderFilaTotales(col, "TOTAL RETENCIÓN RENTA:", r.TotalRetencionRenta.ToString("0.00"));
-                RenderFilaTotales(col, "TOTAL RETENCIÓN IVA:", r.TotalRetencionIva.ToString("0.00"));
-                RenderFilaTotales(col, "TOTAL RETENIDO:", r.TotalRetenido.ToString("0.00"), bold: true);
+                RenderFilaTotales(col, "TOTAL RETENCIÓN RENTA:", M(r.TotalRetencionRenta));
+                RenderFilaTotales(col, "TOTAL RETENCIÓN IVA:", M(r.TotalRetencionIva));
+                RenderFilaTotales(col, "TOTAL RETENIDO:", M(r.TotalRetenido), bold: true);
             });
         });
     }
@@ -616,7 +616,7 @@ public class ServicioPdf : IServicioPdf
                 foreach (var fp in formasPago)
                 {
                     table.Cell().Element(Td).Text(fp.Codigo).FontSize(7);
-                    table.Cell().Element(Td).AlignRight().Text(fp.Total.ToString("0.00")).FontSize(7);
+                    table.Cell().Element(Td).AlignRight().Text(M(fp.Total)).FontSize(7);
                     table.Cell().Element(Td).AlignCenter().Text(fp.Plazo?.ToString() ?? string.Empty).FontSize(7);
                     table.Cell().Element(Td).AlignCenter().Text(fp.UnidadTiempo ?? string.Empty).FontSize(7);
                 }
@@ -664,4 +664,6 @@ public class ServicioPdf : IServicioPdf
         // Ecuador es UTC-5; se muestra la hora del offset almacenado
         return fechaAuth.Value.ToOffset(TimeSpan.FromHours(-5)).ToString("dd/MM/yyyy HH:mm:ss");
     }
+
+    private static string M(decimal value) => $"$ {value:0.00}";
 }

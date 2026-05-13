@@ -57,6 +57,7 @@ public static class ApiExtensions
 
         services.AddScoped<OrquestadorEmision>();
         services.AddScoped<OrquestadorReintento>();
+        services.AddScoped<GenerarPreviewPdf>();
         services.AddScoped<EmitirFactura>();
         services.AddScoped<EmitirNotaCredito>();
         services.AddScoped<EmitirRetencion>();
