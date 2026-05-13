@@ -70,8 +70,8 @@ public class EmitirFactura(
             cmd.FechaEmision, TipoDocumentoSri.Factura, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
 
-        if (await facturas.ExisteClaveAccesoAsync(claveAcceso, ct))
-            return Errores.Factura.ClaveAccesoDuplicada;
+        if (await facturas.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+            return Errores.Factura.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
@@ -93,11 +93,13 @@ public class EmitirFactura(
         var xmlResult = xml.GenerarXmlFactura(factura, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
+        await facturas.AgregarAsync(factura, ct);
+
         return await orquestador.EjecutarAsync(new ParametrosEmision<Factura>(
             factura, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/facturas",
             empresa.CertificadoP12, empresa.CertPassword,
             (f, t) => pdf.GenerarRideFacturaAsync(f, t),
-            (f, t) => facturas.AgregarAsync(f, t)), ct);
+            (f, t) => facturas.ActualizarAsync(f, t)), ct);
     }
 }

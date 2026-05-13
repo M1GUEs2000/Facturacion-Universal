@@ -14,8 +14,8 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         await ctx.Response.WriteAsJsonAsync(new ProblemDetails
         {
             Status = 500,
-            Title = "Error interno del servidor",
-            Detail = "Ocurrió un error inesperado. Contactar soporte."
+            Title = exception.GetType().Name,
+            Detail = exception.Message
         }, ct);
 
         return true;

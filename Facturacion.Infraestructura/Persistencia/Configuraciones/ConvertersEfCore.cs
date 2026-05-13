@@ -31,22 +31,24 @@ internal static class ConvertersEfCore
 
     private static string EstadoSriToString(EstadoSri v) => v switch
     {
-        EstadoSri.Enviado               => "ENVIADO",
-        EstadoSri.PendienteAutorizacion => "PENDIENTE_AUTORIZACION",
-        EstadoSri.Autorizado            => "AUTORIZADO",
-        EstadoSri.NoAutorizado          => "NO_AUTORIZADO",
-        EstadoSri.Anulado               => "ANULADO",
-        _                               => "PENDIENTE"
+        EstadoSri.Enviado                       => "ENVIADO",
+        EstadoSri.PendienteAutorizacion         => "PENDIENTE_AUTORIZACION",
+        EstadoSri.AutorizadoPendienteArchivos   => "AUTORIZADO_PENDIENTE_ARCHIVOS",
+        EstadoSri.Autorizado                    => "AUTORIZADO",
+        EstadoSri.NoAutorizado                  => "NO_AUTORIZADO",
+        EstadoSri.Anulado                       => "ANULADO",
+        _                                       => "PENDIENTE"
     };
 
     private static EstadoSri StringToEstadoSri(string v) => v switch
     {
-        "ENVIADO"                  => EstadoSri.Enviado,
-        "PENDIENTE_AUTORIZACION"   => EstadoSri.PendienteAutorizacion,
-        "AUTORIZADO"               => EstadoSri.Autorizado,
-        "NO_AUTORIZADO"            => EstadoSri.NoAutorizado,
-        "ANULADO"                  => EstadoSri.Anulado,
-        _                          => EstadoSri.Pendiente
+        "ENVIADO"                        => EstadoSri.Enviado,
+        "PENDIENTE_AUTORIZACION"         => EstadoSri.PendienteAutorizacion,
+        "AUTORIZADO_PENDIENTE_ARCHIVOS"  => EstadoSri.AutorizadoPendienteArchivos,
+        "AUTORIZADO"                     => EstadoSri.Autorizado,
+        "NO_AUTORIZADO"                  => EstadoSri.NoAutorizado,
+        "ANULADO"                        => EstadoSri.Anulado,
+        _                                => EstadoSri.Pendiente
     };
 
     // ─── EstadoCorreo ─────────────────────────────────────────────────────────

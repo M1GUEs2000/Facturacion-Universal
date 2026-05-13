@@ -4,6 +4,7 @@ using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Facturacion.Core.Enums;
 
 namespace Facturacion.Api.Endpoints.Facturas;
 
@@ -16,8 +17,20 @@ public static class FacturasEndpoints
             .AllowAnonymous();
 
         group.MapPost("/", Emitir).WithName("EmitirFactura");
+        group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarFactura");
 
         return app;
+    }
+
+    private static async Task<IResult> Reintentar(
+        Guid id,
+        [FromServices] ReintentarEmisionFactura useCase,
+        CancellationToken ct)
+    {
+        var result = await useCase.EjecutarAsync(id, ct);
+        return result.Match(
+            factura => Results.Ok(FacturaResponse.From(factura)),
+            errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Emitir(

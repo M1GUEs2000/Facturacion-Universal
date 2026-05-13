@@ -16,8 +16,20 @@ public static class RetencionesEndpoints
             .RequireAuthorization();
 
         group.MapPost("/", Emitir).WithName("EmitirRetencion");
+        group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarRetencion");
 
         return app;
+    }
+
+    private static async Task<IResult> Reintentar(
+        Guid id,
+        [FromServices] ReintentarEmisionRetencion useCase,
+        CancellationToken ct)
+    {
+        var result = await useCase.EjecutarAsync(id, ct);
+        return result.Match(
+            retencion => Results.Ok(RetencionResponse.From(retencion)),
+            errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Emitir(

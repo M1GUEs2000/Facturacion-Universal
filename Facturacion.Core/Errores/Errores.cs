@@ -21,6 +21,9 @@ public static class Errores
         public static readonly Error ClaveAccesoDuplicada =
             Error.Conflict("Factura.ClaveAccesoDuplicada", "Ya existe una factura con esa clave de acceso.");
 
+        public static readonly Error SecuencialDuplicado =
+            Error.Conflict("Factura.SecuencialDuplicado", "Ya existe una factura activa con ese número secuencial.");
+
         public static readonly Error EstadoInvalido =
             Error.Validation("Factura.EstadoInvalido", "La factura no está en un estado válido para esta operación.");
     }
@@ -33,6 +36,9 @@ public static class Errores
         public static readonly Error ClaveAccesoDuplicada =
             Error.Conflict("NotaCredito.ClaveAccesoDuplicada", "Ya existe una nota de crédito con esa clave de acceso.");
 
+        public static readonly Error SecuencialDuplicado =
+            Error.Conflict("NotaCredito.SecuencialDuplicado", "Ya existe una nota de crédito activa con ese número secuencial.");
+
         public static readonly Error EstadoInvalido =
             Error.Validation("NotaCredito.EstadoInvalido", "La nota de crédito no está en un estado válido para esta operación.");
     }
@@ -44,6 +50,9 @@ public static class Errores
 
         public static readonly Error ClaveAccesoDuplicada =
             Error.Conflict("Retencion.ClaveAccesoDuplicada", "Ya existe una retención con esa clave de acceso.");
+
+        public static readonly Error SecuencialDuplicado =
+            Error.Conflict("Retencion.SecuencialDuplicado", "Ya existe una retención activa con ese número secuencial.");
 
         public static readonly Error EstadoInvalido =
             Error.Validation("Retencion.EstadoInvalido", "La retención no está en un estado válido para esta operación.");

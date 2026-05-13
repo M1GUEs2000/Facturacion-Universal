@@ -56,9 +56,13 @@ public static class ApiExtensions
         services.AddValidatorsFromAssemblyContaining<Program>();
 
         services.AddScoped<OrquestadorEmision>();
+        services.AddScoped<OrquestadorReintento>();
         services.AddScoped<EmitirFactura>();
         services.AddScoped<EmitirNotaCredito>();
         services.AddScoped<EmitirRetencion>();
+        services.AddScoped<ReintentarEmisionFactura>();
+        services.AddScoped<ReintentarEmisionNotaCredito>();
+        services.AddScoped<ReintentarEmisionRetencion>();
         services.AddScoped<GuardarEmpresa>();
         services.AddScoped<RegistrarEmpresa>();
         services.AddScoped<ActualizarEmpresa>();

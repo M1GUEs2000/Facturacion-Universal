@@ -21,6 +21,17 @@ public class RetencionesRepositorio(AppDbContext context) : IRetencionesReposito
     public async Task<bool> ExisteClaveAccesoAsync(string claveAcceso, CancellationToken ct = default)
         => await context.Retenciones.AnyAsync(r => r.ClaveAcceso == claveAcceso, ct);
 
+    public async Task<bool> ExisteSecuencialActivoAsync(
+        string empresaRuc, string estab, string ptoEmi, string secuencial, Ambiente ambiente, CancellationToken ct = default)
+        => await context.Retenciones.AnyAsync(r =>
+            r.EmpresaRuc == empresaRuc &&
+            r.Estab == estab &&
+            r.PtoEmi == ptoEmi &&
+            r.Secuencial == secuencial &&
+            r.Ambiente == ambiente &&
+            r.EstadoSri != EstadoSri.Pendiente &&
+            r.EstadoSri != EstadoSri.NoAutorizado, ct);
+
     public async Task<IReadOnlyList<Retencion>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
     {
         var query = context.Retenciones.Where(r => r.EmpresaRuc == empresaRuc);

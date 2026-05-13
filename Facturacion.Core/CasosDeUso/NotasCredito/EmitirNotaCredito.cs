@@ -71,8 +71,8 @@ public class EmitirNotaCredito(
             cmd.FechaEmision, TipoDocumentoSri.NotaCredito, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
 
-        if (await notasCredito.ExisteClaveAccesoAsync(claveAcceso, ct))
-            return Errores.NotaCredito.ClaveAccesoDuplicada;
+        if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+            return Errores.NotaCredito.SecuencialDuplicado;
 
         var notaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => NotaCreditoDetalle.Crear(
@@ -93,11 +93,13 @@ public class EmitirNotaCredito(
         var xmlResult = xml.GenerarXmlNotaCredito(nota, empresa);
         if (xmlResult.IsError) return xmlResult.Errors;
 
+        await notasCredito.AgregarAsync(nota, ct);
+
         return await orquestador.EjecutarAsync(new ParametrosEmision<NotaCredito>(
             nota, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/notas-credito",
             empresa.CertificadoP12, empresa.CertPassword,
             (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
-            (n, t) => notasCredito.AgregarAsync(n, t)), ct);
+            (n, t) => notasCredito.ActualizarAsync(n, t)), ct);
     }
 }

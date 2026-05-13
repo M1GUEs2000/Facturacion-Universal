@@ -57,8 +57,8 @@ public class EmitirRetencion(
             cmd.FechaEmision, TipoDocumentoSri.Retencion, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
 
-        if (await retenciones.ExisteClaveAccesoAsync(claveAcceso, ct))
-            return Errores.Retencion.ClaveAccesoDuplicada;
+        if (await retenciones.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+            return Errores.Retencion.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
@@ -78,11 +78,13 @@ public class EmitirRetencion(
         var xmlResult = xml.GenerarXmlRetencion(retencion, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
+        await retenciones.AgregarAsync(retencion, ct);
+
         return await orquestador.EjecutarAsync(new ParametrosEmision<Retencion>(
             retencion, claveAcceso, cmd.Ambiente, xmlResult.Value,
             $"{empresa.Ruc}/retenciones",
             empresa.CertificadoP12, empresa.CertPassword,
             (r, t) => pdf.GenerarRideRetencionAsync(r, t),
-            (r, t) => retenciones.AgregarAsync(r, t)), ct);
+            (r, t) => retenciones.ActualizarAsync(r, t)), ct);
     }
 }

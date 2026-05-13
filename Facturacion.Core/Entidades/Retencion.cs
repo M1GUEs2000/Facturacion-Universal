@@ -101,18 +101,32 @@ public class Retencion : IDocumentoEmitible
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void RegistrarAutorizacion(
+    public void RegistrarNumeroAutorizacion(string numeroAutorizacion, DateTimeOffset fechaAutorizacion, string? sriRespuesta = null)
+    {
+        NumeroAutorizacion = numeroAutorizacion;
+        FechaAutorizacion = fechaAutorizacion;
+        SriRespuesta = sriRespuesta;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RegistrarAutorizacionSri(
         string numeroAutorizacion,
         DateTimeOffset fechaAutorizacion,
         string xmlAutorizadoPath,
-        string pdfPath,
         string? sriRespuesta = null)
     {
         NumeroAutorizacion = numeroAutorizacion;
         FechaAutorizacion = fechaAutorizacion;
         XmlAutorizadoPath = xmlAutorizadoPath;
-        PdfPath = pdfPath;
+        XmlFirmadoPath = null;
         SriRespuesta = sriRespuesta;
+        EstadoSri = EstadoSri.AutorizadoPendienteArchivos;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RegistrarPdf(string pdfPath)
+    {
+        PdfPath = pdfPath;
         EstadoSri = EstadoSri.Autorizado;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

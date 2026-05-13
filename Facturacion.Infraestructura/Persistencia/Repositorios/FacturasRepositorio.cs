@@ -21,6 +21,17 @@ public class FacturasRepositorio(AppDbContext context) : IFacturasRepositorio
     public async Task<bool> ExisteClaveAccesoAsync(string claveAcceso, CancellationToken ct = default)
         => await context.Facturas.AnyAsync(f => f.ClaveAcceso == claveAcceso, ct);
 
+    public async Task<bool> ExisteSecuencialActivoAsync(
+        string empresaRuc, string estab, string ptoEmi, string secuencial, Ambiente ambiente, CancellationToken ct = default)
+        => await context.Facturas.AnyAsync(f =>
+            f.EmpresaRuc == empresaRuc &&
+            f.Estab == estab &&
+            f.PtoEmi == ptoEmi &&
+            f.Secuencial == secuencial &&
+            f.Ambiente == ambiente &&
+            f.EstadoSri != EstadoSri.Pendiente &&
+            f.EstadoSri != EstadoSri.NoAutorizado, ct);
+
     public async Task<IReadOnlyList<Factura>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
     {
         var query = context.Facturas.Where(f => f.EmpresaRuc == empresaRuc);

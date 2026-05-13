@@ -16,8 +16,20 @@ public static class NotasCreditoEndpoints
             .RequireAuthorization();
 
         group.MapPost("/", Emitir).WithName("EmitirNotaCredito");
+        group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarNotaCredito");
 
         return app;
+    }
+
+    private static async Task<IResult> Reintentar(
+        Guid id,
+        [FromServices] ReintentarEmisionNotaCredito useCase,
+        CancellationToken ct)
+    {
+        var result = await useCase.EjecutarAsync(id, ct);
+        return result.Match(
+            nota => Results.Ok(NotaCreditoResponse.From(nota)),
+            errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Emitir(
