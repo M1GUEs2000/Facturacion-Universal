@@ -83,13 +83,20 @@ public class EmitirRetencion(
         var xmlResult = xml.GenerarXmlRetencion(retencion, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
+
         await retenciones.AgregarAsync(retencion, ct);
 
         return await orquestador.EjecutarAsync(new ParametrosEmision<Retencion>(
             retencion, claveAcceso, cmd.Ambiente, xmlResult.Value,
-            $"{empresa.Ruc}/retenciones",
+            RutasStorage.PrefijoRetenciones(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (r, t) => pdf.GenerarRideRetencionAsync(r, t),
+            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t),
             (r, t) => retenciones.ActualizarAsync(r, t),
             async t =>
             {

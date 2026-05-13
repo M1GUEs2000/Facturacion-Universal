@@ -3,6 +3,7 @@ using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Core.Metodos;
 
 namespace Facturacion.Core.CasosDeUso.Retenciones;
 
@@ -31,15 +32,22 @@ public class ReintentarEmisionRetencion(
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(retencion.EmpresaRuc, ct);
 
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
+
         return await orquestador.EjecutarAsync(new ParametrosReintento<Retencion>(
             retencion,
             retencion.ClaveAcceso,
             retencion.Ambiente,
-            $"{empresa.Ruc}/retenciones",
+            RutasStorage.PrefijoRetenciones(empresa.Ruc),
             certResult.Value,
             empresa.CertPassword,
             (r, _) => xml.GenerarXmlRetencion(r, empresa, parametros),
-            (r, t) => pdf.GenerarRideRetencionAsync(r, t),
+            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t),
             (r, t) => retenciones.ActualizarAsync(r, t)), ct);
     }
 }

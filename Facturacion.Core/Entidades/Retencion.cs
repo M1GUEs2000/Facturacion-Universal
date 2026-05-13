@@ -135,6 +135,7 @@ public class Retencion : IDocumentoEmitible
     {
         SriRespuesta = sriRespuesta;
         EstadoSri = EstadoSri.NoAutorizado;
+        XmlFirmadoPath = null;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

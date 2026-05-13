@@ -32,15 +32,22 @@ public class ReintentarEmisionFactura(
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(factura.EmpresaRuc, ct);
 
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
+
         return await orquestador.EjecutarAsync(new ParametrosReintento<Factura>(
             factura,
             factura.ClaveAcceso,
             factura.Ambiente,
-            $"{empresa.Ruc}/facturas",
+            RutasStorage.PrefijoFacturas(empresa.Ruc),
             certResult.Value,
             empresa.CertPassword,
             (f, _) => xml.GenerarXmlFactura(f, empresa, parametros),
-            (f, t) => pdf.GenerarRideFacturaAsync(f, t),
+            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t),
             (f, t) => facturas.ActualizarAsync(f, t)), ct);
     }
 }

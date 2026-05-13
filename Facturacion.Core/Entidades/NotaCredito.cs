@@ -159,6 +159,7 @@ public class NotaCredito : IDocumentoEmitible
     {
         SriRespuesta = sriRespuesta;
         EstadoSri = EstadoSri.NoAutorizado;
+        XmlFirmadoPath = null;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

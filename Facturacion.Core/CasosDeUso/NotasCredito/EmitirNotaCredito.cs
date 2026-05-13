@@ -57,6 +57,7 @@ public record ComandoEmitirNotaCredito(
 public class EmitirNotaCredito(
     IEmpresasRepositorio empresas,
     INotasCreditoRepositorio notasCredito,
+    IParametrosFacturacionRepositorio parametrosRepo,
     ISecuencialesSriRepositorio secuenciales,
     IServicioXml xml,
     IServicioPdf pdf,
@@ -78,6 +79,15 @@ public class EmitirNotaCredito(
 
         if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
             return Errores.NotaCredito.SecuencialDuplicado;
+
+        var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
+
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
 
         var notaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => NotaCreditoDetalle.Crear(
@@ -102,9 +112,9 @@ public class EmitirNotaCredito(
 
         return await orquestador.EjecutarAsync(new ParametrosEmision<NotaCredito>(
             nota, claveAcceso, cmd.Ambiente, xmlResult.Value,
-            $"{empresa.Ruc}/notas-credito",
+            RutasStorage.PrefijoNotasCredito(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
+            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t),
             (n, t) => notasCredito.ActualizarAsync(n, t),
             async t =>
             {

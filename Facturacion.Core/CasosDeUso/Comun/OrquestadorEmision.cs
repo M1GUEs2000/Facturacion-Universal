@@ -3,6 +3,7 @@ using ErrorOr;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Core.Metodos;
 
 namespace Facturacion.Core.CasosDeUso.Comun;
 
@@ -29,7 +30,7 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
         var firmadoResult = await firma.FirmarXmlAsync(p.XmlSinFirmar, p.CertificadoP12, p.CertPassword, ct);
         if (firmadoResult.IsError) return firmadoResult.Errors;
 
-        var xmlFirmadoPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}.xml";
+        var xmlFirmadoPath = RutasStorage.XmlFirmado(p.StoragePrefijo, p.ClaveAcceso);
         var storageXmlResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(firmadoResult.Value), xmlFirmadoPath, ct);
         if (storageXmlResult.IsError) return storageXmlResult.Errors;
 
@@ -55,6 +56,7 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
 
         if (!auth.Autorizado)
         {
+            await storage.EliminarAsync(xmlFirmadoPath, ct);
             p.Documento.RegistrarNoAutorizacion(auth.MensajeSri);
             await p.Persistir(p.Documento, ct);
             return Errores.Sri.NoAutorizado(auth.MensajeSri);
@@ -67,7 +69,7 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
         await p.Persistir(p.Documento, ct);
 
         // ── 4. Storage XML autorizado + borrar XML firmado ────────────────────
-        var xmlAutPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}_autorizado.xml";
+        var xmlAutPath = RutasStorage.XmlAutorizado(p.StoragePrefijo, p.ClaveAcceso);
         var storageXmlAutResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(auth.XmlAutorizado!), xmlAutPath, ct);
         if (storageXmlAutResult.IsError) return storageXmlAutResult.Errors;
 
@@ -82,7 +84,7 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
         var pdfResult = await p.GenerarPdf(p.Documento, ct);
         if (pdfResult.IsError) return pdfResult.Errors;
 
-        var pdfPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}.pdf";
+        var pdfPath = RutasStorage.Pdf(p.StoragePrefijo, p.ClaveAcceso);
         var storagePdfResult = await storage.GuardarAsync(pdfResult.Value, pdfPath, ct);
         if (storagePdfResult.IsError) return storagePdfResult.Errors;
 

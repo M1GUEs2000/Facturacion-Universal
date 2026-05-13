@@ -3,12 +3,14 @@ using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Core.Metodos;
 
 namespace Facturacion.Core.CasosDeUso.NotasCredito;
 
 public class ReintentarEmisionNotaCredito(
     IEmpresasRepositorio empresas,
     INotasCreditoRepositorio notasCredito,
+    IParametrosFacturacionRepositorio parametrosRepo,
     IServicioXml xml,
     IServicioPdf pdf,
     IServicioStorageFirmaYLogo storageFirma,
@@ -28,15 +30,24 @@ public class ReintentarEmisionNotaCredito(
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
+        var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(nota.EmpresaRuc, ct);
+
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
+
         return await orquestador.EjecutarAsync(new ParametrosReintento<NotaCredito>(
             nota,
             nota.ClaveAcceso,
             nota.Ambiente,
-            $"{empresa.Ruc}/notas-credito",
+            RutasStorage.PrefijoNotasCredito(empresa.Ruc),
             certResult.Value,
             empresa.CertPassword,
             (n, _) => xml.GenerarXmlNotaCredito(n, empresa),
-            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, t),
+            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t),
             (n, t) => notasCredito.ActualizarAsync(n, t)), ct);
     }
 }

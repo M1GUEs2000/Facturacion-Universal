@@ -98,13 +98,20 @@ public class EmitirFactura(
         var xmlResult = xml.GenerarXmlFactura(factura, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;
 
+        byte[]? logoBytes = null;
+        if (empresa.LogoPath is not null)
+        {
+            var logoResult = await storageFirma.ObtenerAsync(empresa.LogoPath, ct);
+            if (!logoResult.IsError) logoBytes = logoResult.Value;
+        }
+
         await facturas.AgregarAsync(factura, ct);
 
         return await orquestador.EjecutarAsync(new ParametrosEmision<Factura>(
             factura, claveAcceso, cmd.Ambiente, xmlResult.Value,
-            $"{empresa.Ruc}/facturas",
+            RutasStorage.PrefijoFacturas(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (f, t) => pdf.GenerarRideFacturaAsync(f, t),
+            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t),
             (f, t) => facturas.ActualizarAsync(f, t),
             async t =>
             {

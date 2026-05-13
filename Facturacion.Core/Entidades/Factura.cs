@@ -153,6 +153,7 @@ public class Factura : IDocumentoEmitible
     {
         SriRespuesta = sriRespuesta;
         EstadoSri = EstadoSri.NoAutorizado;
+        XmlFirmadoPath = null;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

@@ -3,6 +3,7 @@ using ErrorOr;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Core.Metodos;
 
 namespace Facturacion.Core.CasosDeUso.Comun;
 
@@ -36,7 +37,7 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
             var firmadoResult = await firma.FirmarXmlAsync(xmlResult.Value, p.CertificadoP12, p.CertPassword, ct);
             if (firmadoResult.IsError) return firmadoResult.Errors;
 
-            var xmlFirmadoPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}.xml";
+            var xmlFirmadoPath = RutasStorage.XmlFirmado(p.StoragePrefijo, p.ClaveAcceso);
             var storageResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(firmadoResult.Value), xmlFirmadoPath, ct);
             if (storageResult.IsError) return storageResult.Errors;
 
@@ -76,6 +77,8 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
 
             if (!auth.Autorizado)
             {
+                if (doc.XmlFirmadoPath is not null)
+                    await storage.EliminarAsync(doc.XmlFirmadoPath, ct);
                 doc.RegistrarNoAutorizacion(auth.MensajeSri);
                 await p.Persistir(doc, ct);
                 return Errores.Sri.NoAutorizado(auth.MensajeSri);
@@ -85,7 +88,7 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
             doc.RegistrarNumeroAutorizacion(auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value, auth.MensajeSri);
             await p.Persistir(doc, ct);
 
-            var xmlAutPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}_autorizado.xml";
+            var xmlAutPath = RutasStorage.XmlAutorizado(p.StoragePrefijo, p.ClaveAcceso);
             var storageXmlAutResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(auth.XmlAutorizado!), xmlAutPath, ct);
             if (storageXmlAutResult.IsError) return storageXmlAutResult.Errors;
 
@@ -105,7 +108,7 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
             var pdfResult = await p.GenerarPdf(doc, ct);
             if (pdfResult.IsError) return pdfResult.Errors;
 
-            var pdfPath = $"{p.StoragePrefijo}/{p.ClaveAcceso}.pdf";
+            var pdfPath = RutasStorage.Pdf(p.StoragePrefijo, p.ClaveAcceso);
             var storagePdfResult = await storage.GuardarAsync(pdfResult.Value, pdfPath, ct);
             if (storagePdfResult.IsError) return storagePdfResult.Errors;
 
