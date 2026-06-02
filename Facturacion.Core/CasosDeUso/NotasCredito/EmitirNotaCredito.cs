@@ -31,7 +31,7 @@ public record ComandoEmitirNotaCredito(
     Ambiente Ambiente,
     string Estab,
     string PtoEmi,
-    string Secuencial,
+    string? Secuencial,
     DateOnly FechaEmision,
     string TipoIdentificacionComprador,
     string IdentificacionComprador,
@@ -73,11 +73,14 @@ public class EmitirNotaCredito(
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
+        var secuencial = cmd.Secuencial
+            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "04", ct)).ToString("D9");
+
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.NotaCredito, empresa.Ruc,
-            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
+            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
 
-        if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+        if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
             return Errores.NotaCredito.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
@@ -97,7 +100,7 @@ public class EmitirNotaCredito(
             d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor)).ToList();
 
         var nota = NotaCredito.Crear(
-            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, claveAcceso,
+            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial, claveAcceso,
             cmd.FechaEmision, cmd.TipoIdentificacionComprador, cmd.IdentificacionComprador,
             cmd.RazonSocialComprador, cmd.DireccionComprador, cmd.DirEstablecimiento,
             cmd.DocModificadoTipo, cmd.DocModificadoNumero, cmd.DocModificadoFecha, cmd.DocModificadoClaveAcceso,
@@ -116,10 +119,6 @@ public class EmitirNotaCredito(
             certResult.Value, empresa.CertPassword,
             (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t),
             (n, t) => notasCredito.ActualizarAsync(n, t),
-            async t =>
-            {
-                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "04", t);
-                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
-            }), ct);
+            null), ct);
     }
 }

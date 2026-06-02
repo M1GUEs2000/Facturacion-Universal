@@ -35,9 +35,10 @@ public static class FacturasEndpoints
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
 
+        var secuencialPreview = req.Secuencial ?? "000000001";
         var claveAcceso = GeneradorClaveAcceso.Generar(
             req.FechaEmision, TipoDocumentoSri.Factura, req.EmpresaRuc,
-            req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial);
+            req.Ambiente, req.Estab, req.PtoEmi, secuencialPreview);
 
         var facturaId = Guid.NewGuid();
         var detalle = req.Detalle
@@ -49,7 +50,7 @@ public static class FacturasEndpoints
             .ToList();
 
         var factura = Factura.Crear(
-            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial, claveAcceso,
+            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, secuencialPreview, claveAcceso,
             req.FechaEmision, req.TipoIdentificacionComprador, req.IdentificacionComprador,
             req.RazonSocialComprador, req.DireccionComprador, req.DirEstablecimiento,
             req.TotalSinImpuestos, req.TotalDescuento, req.BaseImponibleIce, req.ValorIce,

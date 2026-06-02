@@ -22,7 +22,7 @@ public record EmitirRetencionRequest(
     Ambiente Ambiente,
     string Estab,
     string PtoEmi,
-    string Secuencial,
+    string? Secuencial,
     DateOnly FechaEmision,
     string TipoIdentificacionSujeto,
     string IdentificacionSujeto,
@@ -57,7 +57,7 @@ public class EmitirRetencionValidator : AbstractValidator<EmitirRetencionRequest
         RuleFor(x => x.EmpresaRuc).NotEmpty();
         RuleFor(x => x.Estab).NotEmpty().Length(3).Matches(@"^\d+$");
         RuleFor(x => x.PtoEmi).NotEmpty().Length(3).Matches(@"^\d+$");
-        RuleFor(x => x.Secuencial).NotEmpty().Length(9).Matches(@"^\d+$");
+        RuleFor(x => x.Secuencial).Length(9).Matches(@"^\d+$").When(x => x.Secuencial is not null);
         RuleFor(x => x.TipoIdentificacionSujeto)
             .NotEmpty()
             .Must(TipoIdentificacion.SujetoRetenidoPermitidos.Contains)

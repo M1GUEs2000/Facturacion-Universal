@@ -24,7 +24,7 @@ public record ComandoEmitirRetencion(
     Ambiente Ambiente,
     string Estab,
     string PtoEmi,
-    string Secuencial,
+    string? Secuencial,
     DateOnly FechaEmision,
     string TipoIdentificacionSujeto,
     string IdentificacionSujeto,
@@ -58,11 +58,14 @@ public class EmitirRetencion(
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
+        var secuencial = cmd.Secuencial
+            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "07", ct)).ToString("D9");
+
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Retencion, empresa.Ruc,
-            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
+            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
 
-        if (await retenciones.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+        if (await retenciones.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
             return Errores.Retencion.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
@@ -74,7 +77,7 @@ public class EmitirRetencion(
             d.CodDocSustento, d.NumDocSustento, d.FechaEmisionDocSustento)).ToList();
 
         var retencion = Retencion.Crear(
-            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, claveAcceso,
+            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial, claveAcceso,
             cmd.FechaEmision, cmd.TipoIdentificacionSujeto, cmd.IdentificacionSujeto,
             cmd.RazonSocialSujeto, cmd.DireccionSujeto, cmd.PeriodoFiscal,
             cmd.TotalBaseImponible, cmd.TotalRetencionRenta, cmd.TotalRetencionIva, cmd.TotalRetenido,
@@ -98,10 +101,6 @@ public class EmitirRetencion(
             certResult.Value, empresa.CertPassword,
             (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t),
             (r, t) => retenciones.ActualizarAsync(r, t),
-            async t =>
-            {
-                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "07", t);
-                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
-            }), ct);
+            null), ct);
     }
 }

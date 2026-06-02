@@ -31,7 +31,7 @@ public record ComandoEmitirFactura(
     Ambiente Ambiente,
     string Estab,
     string PtoEmi,
-    string Secuencial,
+    string? Secuencial,
     DateOnly FechaEmision,
     string TipoIdentificacionComprador,
     string IdentificacionComprador,
@@ -71,11 +71,14 @@ public class EmitirFactura(
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
+        var secuencial = cmd.Secuencial
+            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "01", ct)).ToString("D9");
+
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Factura, empresa.Ruc,
-            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial);
+            cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
 
-        if (await facturas.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+        if (await facturas.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
             return Errores.Factura.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
@@ -88,7 +91,7 @@ public class EmitirFactura(
             d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor)).ToList();
 
         var factura = Factura.Crear(
-            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, claveAcceso,
+            cmd.EmpresaRuc, cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial, claveAcceso,
             cmd.FechaEmision, cmd.TipoIdentificacionComprador, cmd.IdentificacionComprador,
             cmd.RazonSocialComprador, cmd.DireccionComprador, cmd.DirEstablecimiento,
             cmd.TotalSinImpuestos, cmd.TotalDescuento, cmd.BaseImponibleIce, cmd.ValorIce,
@@ -113,10 +116,6 @@ public class EmitirFactura(
             certResult.Value, empresa.CertPassword,
             (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t),
             (f, t) => facturas.ActualizarAsync(f, t),
-            async t =>
-            {
-                var sec = await secuenciales.ObtenerAsync(cmd.EmpresaRuc, "01", t);
-                if (sec is not null) { sec.Incrementar(); await secuenciales.ActualizarAsync(sec, t); }
-            }), ct);
+            null), ct);
     }
 }
