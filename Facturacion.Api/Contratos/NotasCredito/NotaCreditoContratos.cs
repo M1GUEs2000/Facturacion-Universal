@@ -57,12 +57,12 @@ public record NotaCreditoResponse(
     string EstadoSri,
     string? NumeroAutorizacion,
     DateTimeOffset? FechaAutorizacion,
-    string? XmlAutorizadoPath,
-    string? PdfPath)
+    bool HasPdf,
+    bool HasXml)
 {
     public static NotaCreditoResponse From(NotaCredito n) =>
         new(n.Id, n.ClaveAcceso, n.EstadoSri.ToString(), n.NumeroAutorizacion,
-            n.FechaAutorizacion, n.XmlAutorizadoPath, n.PdfPath);
+            n.FechaAutorizacion, n.PdfPath is not null, n.XmlAutorizadoPath is not null);
 }
 
 public class EmitirNotaCreditoValidator : AbstractValidator<EmitirNotaCreditoRequest>

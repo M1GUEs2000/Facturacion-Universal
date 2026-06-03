@@ -100,6 +100,18 @@ public static class Errores
 
         public static readonly Error ArchivoNoEncontrado =
             Error.NotFound("Storage.ArchivoNoEncontrado", "El archivo no existe en el storage.");
+
+        public static readonly Error UrlFirmadaNoSoportada =
+            Error.Failure("Storage.UrlFirmadaNoSoportada", "Este proveedor de storage no soporta URLs firmadas.");
+    }
+
+    public static class Documento
+    {
+        public static readonly Error SinPdf =
+            Error.NotFound("Documento.SinPdf", "El documento no tiene RIDE PDF generado todavía.");
+
+        public static readonly Error SinXml =
+            Error.NotFound("Documento.SinXml", "El documento no tiene XML autorizado todavía.");
     }
 
     public static class Xml

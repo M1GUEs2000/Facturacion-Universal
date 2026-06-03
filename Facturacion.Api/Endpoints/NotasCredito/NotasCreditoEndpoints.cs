@@ -3,6 +3,7 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.NotasCredito;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,8 +21,40 @@ public static class NotasCreditoEndpoints
         group.MapPost("/", Emitir).WithName("EmitirNotaCredito");
         group.MapPost("/preview", Preview).WithName("PreviewNotaCredito");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarNotaCredito");
+        group.MapGet("/{id:guid}/pdf", ObtenerPdf).WithName("DescargarPdfNotaCredito");
+        group.MapGet("/{id:guid}/xml", ObtenerXml).WithName("DescargarXmlNotaCredito");
 
         return app;
+    }
+
+    private static async Task<IResult> ObtenerPdf(
+        Guid id,
+        [FromServices] INotasCreditoRepositorio repo,
+        [FromServices] ObtenerUrlDescarga useCase,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+        var nota = await repo.ObtenerPorIdAsync(id, ct);
+        if (nota is null) return Results.NotFound();
+        var result = await useCase.EjecutarAsync(nota, TipoArchivoDescarga.Pdf, cuentaId, ct);
+        return result.Match(r => Results.Ok(r), errors => errors.ToProblemResult());
+    }
+
+    private static async Task<IResult> ObtenerXml(
+        Guid id,
+        [FromServices] INotasCreditoRepositorio repo,
+        [FromServices] ObtenerUrlDescarga useCase,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+        var nota = await repo.ObtenerPorIdAsync(id, ct);
+        if (nota is null) return Results.NotFound();
+        var result = await useCase.EjecutarAsync(nota, TipoArchivoDescarga.Xml, cuentaId, ct);
+        return result.Match(r => Results.Ok(r), errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Preview(

@@ -61,6 +61,9 @@ public class ServicioStorageLocal(IOptions<StorageLocalOpciones> opciones, ILogg
         }
     }
 
+    public Task<ErrorOr<string>> GenerarUrlFirmadaAsync(string ruta, int ttlSegundos = 300, CancellationToken ct = default) =>
+        Task.FromResult<ErrorOr<string>>(Errores.Storage.UrlFirmadaNoSoportada);
+
     private string BuildPath(string ruta) =>
         Path.GetFullPath(Path.Combine(_basePath, ruta));
 }

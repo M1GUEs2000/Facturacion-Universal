@@ -61,12 +61,12 @@ public record FacturaResponse(
     string EstadoSri,
     string? NumeroAutorizacion,
     DateTimeOffset? FechaAutorizacion,
-    string? XmlAutorizadoPath,
-    string? PdfPath)
+    bool HasPdf,
+    bool HasXml)
 {
     public static FacturaResponse From(Factura f) =>
         new(f.Id, f.ClaveAcceso, f.EstadoSri.ToString(), f.NumeroAutorizacion,
-            f.FechaAutorizacion, f.XmlAutorizadoPath, f.PdfPath);
+            f.FechaAutorizacion, f.PdfPath is not null, f.XmlAutorizadoPath is not null);
 }
 
 public class EmitirFacturaValidator : AbstractValidator<EmitirFacturaRequest>

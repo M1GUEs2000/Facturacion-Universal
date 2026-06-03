@@ -99,6 +99,43 @@ public class ServicioStorageSupabase(
         }
     }
 
+    public async Task<ErrorOr<string>> GenerarUrlFirmadaAsync(string ruta, int ttlSegundos = 300, CancellationToken ct = default)
+    {
+        try
+        {
+            var client = CreateClient();
+            var url = $"{opciones.Url}/storage/v1/object/sign/{opciones.Bucket}/{ruta}";
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(new { expiresIn = ttlSegundos }),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            var response = await client.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Supabase Storage error {Status} generando URL firmada para {Ruta}", response.StatusCode, ruta);
+                return Errores.Storage.ErrorGuardar;
+            }
+
+            var body = await response.Content.ReadAsStringAsync(ct);
+            var json = JsonSerializer.Deserialize<JsonElement>(body);
+            var signedUrl = json.GetProperty("signedURL").GetString()
+                ?? throw new InvalidOperationException("Supabase no devolvió signedURL");
+
+            if (!signedUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                signedUrl = $"{opciones.Url}{signedUrl}";
+
+            return signedUrl;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generando URL firmada para {Ruta}", ruta);
+            return Errores.Storage.ErrorGuardar;
+        }
+    }
+
     private HttpClient CreateClient()
     {
         var client = httpFactory.CreateClient("supabase-storage");
