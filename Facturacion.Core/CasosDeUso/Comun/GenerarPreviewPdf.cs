@@ -49,9 +49,8 @@ public class GenerarPreviewPdf(
             cmd.FechaEmision, TipoDocumentoSri.Factura, cmd.EmpresaRuc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
 
-        var facturaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => FacturaDetalle.Crear(
-            facturaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
+            d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
             d.Cantidad, d.PrecioUnitario, d.Descuento, d.PrecioTotalSinImpuesto,
             d.IceCodigo, d.IceTarifa, d.IceBase, d.IceValor,
             d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor)).ToList();
@@ -62,8 +61,7 @@ public class GenerarPreviewPdf(
             cmd.RazonSocialComprador, cmd.DireccionComprador, cmd.DirEstablecimiento,
             cmd.TotalSinImpuestos, cmd.TotalDescuento, cmd.BaseImponibleIce, cmd.ValorIce,
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.Propina, cmd.ImporteTotal,
-            cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle,
-            id: facturaId);
+            cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle);
 
         return await pdf.GenerarRideFacturaAsync(factura, ctx.Value.Empresa, ctx.Value.Parametros, ctx.Value.LogoBytes, ct);
     }

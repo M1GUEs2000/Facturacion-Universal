@@ -68,7 +68,7 @@ public class FacturaConfiguracion : IEntityTypeConfiguration<Factura>
 
         builder.HasMany(f => f.Detalle)
             .WithOne()
-            .HasForeignKey(d => d.FacturaId)
+            .HasForeignKey("FacturaId")
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
     }

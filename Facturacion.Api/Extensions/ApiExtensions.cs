@@ -27,11 +27,13 @@ public static class ApiExtensions
         services.AddCors(options =>
         {
             options.AddPolicy(CorsPolicy, policy =>
-                policy.WithOrigins(
-                        "http://localhost:5173",
-                        "http://127.0.0.1:5173")
+            {
+                var origins = config.GetSection("Cors:Origins").Get<string[]>()
+                    ?? ["http://localhost:5173", "http://127.0.0.1:5173"];
+                policy.WithOrigins(origins)
                     .AllowAnyHeader()
-                    .AllowAnyMethod());
+                    .AllowAnyMethod();
+            });
         });
 
         services.AddRateLimiter(options =>

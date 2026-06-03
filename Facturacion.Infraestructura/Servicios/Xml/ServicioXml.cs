@@ -250,28 +250,24 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
         string? iceCodigo, decimal? iceTarifa, decimal? iceBase, decimal? iceValor,
         CodigoIva ivaCodigo, decimal ivaTarifa, decimal ivaBase, decimal ivaValor)
     {
-        var lista = new List<XmlImpuestoDetalle>();
-
-        if (iceCodigo != null)
-            lista.Add(new XmlImpuestoDetalle
-            {
-                Codigo = "3",
-                CodigoPorcentaje = iceCodigo,
-                Tarifa = M(iceTarifa ?? 0m),
-                BaseImponible = M(iceBase ?? 0m),
-                Valor = M(iceValor ?? 0m)
-            });
-
-        lista.Add(new XmlImpuestoDetalle
+        var iva = new XmlImpuestoDetalle
         {
             Codigo = "2",
             CodigoPorcentaje = ((int)ivaCodigo).ToString(),
             Tarifa = M(ivaTarifa),
             BaseImponible = M(ivaBase),
             Valor = M(ivaValor)
-        });
-
-        return lista;
+        };
+        if (iceCodigo is null)
+            return [iva];
+        return [new XmlImpuestoDetalle
+        {
+            Codigo = "3",
+            CodigoPorcentaje = iceCodigo,
+            Tarifa = M(iceTarifa ?? 0m),
+            BaseImponible = M(iceBase ?? 0m),
+            Valor = M(iceValor ?? 0m)
+        }, iva];
     }
 
     private static XmlCampoAdicional MapCampoAdicional(InfoAdicional ia) =>

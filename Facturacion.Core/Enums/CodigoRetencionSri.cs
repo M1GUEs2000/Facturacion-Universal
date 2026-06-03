@@ -63,7 +63,7 @@ public static class CatalogoRetencionesSri
         new(TipoIva, "8", "No procede retencion", 0m)
     ];
 
-    public static readonly IReadOnlyList<CodigoRetencionSri> Todos = Renta.Concat(Iva).ToArray();
+    public static readonly IReadOnlyList<CodigoRetencionSri> Todos = [.. Renta, .. Iva];
 
     public static bool EsTipoImpuestoValido(string codigoImpuesto) =>
         codigoImpuesto is TipoRenta or TipoIva;

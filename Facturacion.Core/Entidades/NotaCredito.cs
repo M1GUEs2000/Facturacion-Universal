@@ -21,7 +21,7 @@ public class NotaCredito : DocumentoElectronico
     public decimal BaseImponibleIva { get; private set; }
     public decimal ValorIva { get; private set; }
     public decimal ValorModificacion { get; private set; }
-    public List<NotaCreditoDetalle> Detalle { get; private set; } = [];
+    public IReadOnlyList<NotaCreditoDetalle> Detalle { get; private set; } = [];
 
     public static NotaCredito Crear(
         string empresaRuc,

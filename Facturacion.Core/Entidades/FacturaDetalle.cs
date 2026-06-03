@@ -7,7 +7,6 @@ public class FacturaDetalle
     protected FacturaDetalle() { }
 
     public Guid Id { get; private set; }
-    public Guid FacturaId { get; private set; }
     public int Orden { get; private set; }
     public string CodigoPrincipal { get; private set; } = null!;
     public string? CodigoAuxiliar { get; private set; }
@@ -26,7 +25,6 @@ public class FacturaDetalle
     public decimal IvaValor { get; private set; }
 
     public static FacturaDetalle Crear(
-        Guid facturaId,
         int orden,
         string codigoPrincipal,
         string? codigoAuxiliar,
@@ -47,7 +45,6 @@ public class FacturaDetalle
         return new FacturaDetalle
         {
             Id = Guid.NewGuid(),
-            FacturaId = facturaId,
             Orden = orden,
             CodigoPrincipal = codigoPrincipal,
             CodigoAuxiliar = codigoAuxiliar,

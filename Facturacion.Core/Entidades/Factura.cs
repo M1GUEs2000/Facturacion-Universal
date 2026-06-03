@@ -19,7 +19,7 @@ public class Factura : DocumentoElectronico
     public decimal ImporteTotal { get; private set; }
     public string? GuiaRemision { get; private set; }
     public List<FormaPago> FormasPago { get; private set; } = [];
-    public List<FacturaDetalle> Detalle { get; private set; } = [];
+    public IReadOnlyList<FacturaDetalle> Detalle { get; private set; } = [];
 
     public static Factura Crear(
         string empresaRuc,

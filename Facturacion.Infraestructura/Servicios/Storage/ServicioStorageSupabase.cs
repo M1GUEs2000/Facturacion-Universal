@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ErrorOr;
 using Facturacion.Core;
 using Facturacion.Core.Interfaces.Servicios;
@@ -77,7 +78,7 @@ public class ServicioStorageSupabase(
 
             using var request = new HttpRequestMessage(HttpMethod.Delete, url);
             request.Content = new StringContent(
-                $"{{\"prefixes\":[\"{ruta}\"]}}",
+                JsonSerializer.Serialize(new { prefixes = new[] { ruta } }),
                 System.Text.Encoding.UTF8,
                 "application/json");
 

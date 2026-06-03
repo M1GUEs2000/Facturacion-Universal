@@ -95,9 +95,8 @@ public class EmitirFactura(
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
-        var facturaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => FacturaDetalle.Crear(
-            facturaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
+            d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
             d.Cantidad, d.PrecioUnitario, d.Descuento, d.PrecioTotalSinImpuesto,
             d.IceCodigo, d.IceTarifa, d.IceBase, d.IceValor,
             d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor)).ToList();
@@ -109,7 +108,7 @@ public class EmitirFactura(
             cmd.TotalSinImpuestos, cmd.TotalDescuento, cmd.BaseImponibleIce, cmd.ValorIce,
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.Propina, cmd.ImporteTotal,
             cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle,
-            ipAddress: cmd.IpAddress, id: facturaId);
+            ipAddress: cmd.IpAddress);
 
         var xmlResult = xml.GenerarXmlFactura(factura, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;

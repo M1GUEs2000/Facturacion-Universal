@@ -13,7 +13,7 @@ public class Retencion : DocumentoElectronico
     public decimal TotalRetencionRenta { get; private set; }
     public decimal TotalRetencionIva { get; private set; }
     public decimal TotalRetenido { get; private set; }
-    public List<RetencionDetalle> Detalle { get; private set; } = [];
+    public IReadOnlyList<RetencionDetalle> Detalle { get; private set; } = [];
 
     public static Retencion Crear(
         string empresaRuc,
