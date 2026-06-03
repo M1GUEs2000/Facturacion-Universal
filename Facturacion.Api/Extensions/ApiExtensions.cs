@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Facturacion.Api.Endpoints.Empresas;
 using Facturacion.Api.Endpoints.Facturas;
 using Facturacion.Api.Endpoints.NotasCredito;
@@ -12,6 +13,8 @@ using Facturacion.Core.CasosDeUso.Parametros;
 using Facturacion.Core.CasosDeUso.Retenciones;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Facturacion.Api.Extensions;
 
@@ -31,11 +34,34 @@ public static class ApiExtensions
                     .AllowAnyMethod());
         });
 
+        services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("emision", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: ctx.User.FindFirst("sub")?.Value
+                        ?? ctx.Connection.RemoteIpAddress?.ToString()
+                        ?? "anon",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 60,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.Authority = config["Jwt:Authority"];
                 options.Audience = config["Jwt:Audience"];
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 }
+                };
             });
         services.AddAuthorization();
 

@@ -1,8 +1,8 @@
+using ErrorOr;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Infraestructura.Persistencia.Contexto;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Facturacion.Infraestructura.Persistencia.Repositorios;
 
@@ -30,7 +30,7 @@ public class SecuencialesSriRepositorio(AppDbContext context) : ISecuencialesSri
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<long> IncrementarYObtenerAsync(string empresaRuc, string tipoComprobante, CancellationToken ct = default)
+    public async Task<ErrorOr<long>> IncrementarYObtenerAsync(string empresaRuc, string tipoComprobante, CancellationToken ct = default)
     {
         // UPDATE atómico — PostgreSQL garantiza que dos requests concurrentes
         // obtienen números distintos sin necesidad de locks en la aplicación.
@@ -48,8 +48,7 @@ public class SecuencialesSriRepositorio(AppDbContext context) : ISecuencialesSri
             .ToListAsync(ct);
 
         if (result.Count == 0)
-            throw new InvalidOperationException(
-                $"No existe secuencial para RUC {empresaRuc} / tipo {tipoComprobante}.");
+            return Errores.Secuencial.NoConfigurado(empresaRuc, tipoComprobante);
 
         return result[0];
     }

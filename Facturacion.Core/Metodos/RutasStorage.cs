@@ -22,4 +22,9 @@ public static class RutasStorage
 
     public static string Pdf(string prefijo, string claveAcceso) =>
         $"{prefijo}/{claveAcceso}.pdf";
+
+    // ── Rutas de archivos de empresa ─────────────────────────────────────────
+
+    public static string Certificado(string ruc) => $"{ruc}/certificado.p12";
+    public static string Logo(string ruc) => $"{ruc}/logo";
 }

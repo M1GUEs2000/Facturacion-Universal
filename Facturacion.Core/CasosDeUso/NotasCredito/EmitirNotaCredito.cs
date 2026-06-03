@@ -52,7 +52,8 @@ public record ComandoEmitirNotaCredito(
     decimal ValorModificacion,
     List<InfoAdicional> InfoAdicional,
     List<ComandoDetalleNotaCredito> Detalle,
-    string? IpAddress = null);
+    string? IpAddress = null,
+    Guid? CuentaId = null);
 
 public class EmitirNotaCredito(
     IEmpresasRepositorio empresas,
@@ -70,18 +71,29 @@ public class EmitirNotaCredito(
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
 
+        if (cmd.CuentaId.HasValue && empresa.CuentaId != cmd.CuentaId.Value)
+            return Errores.Empresa.Prohibido;
+
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
-        var secuencial = cmd.Secuencial
-            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "04", ct)).ToString("D9");
+        string secuencial;
+        if (cmd.Secuencial is not null)
+        {
+            if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+                return Errores.NotaCredito.SecuencialDuplicado;
+            secuencial = cmd.Secuencial;
+        }
+        else
+        {
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "04", ct);
+            if (secResult.IsError) return secResult.Errors;
+            secuencial = secResult.Value.ToString("D9");
+        }
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.NotaCredito, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
-
-        if (await notasCredito.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
-            return Errores.NotaCredito.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
@@ -106,7 +118,8 @@ public class EmitirNotaCredito(
             cmd.DocModificadoTipo, cmd.DocModificadoNumero, cmd.DocModificadoFecha, cmd.DocModificadoClaveAcceso,
             cmd.Motivo, cmd.TotalSinImpuestos, cmd.TotalDescuento, cmd.BaseImponibleIce, cmd.ValorIce,
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.ValorModificacion,
-            cmd.InfoAdicional, detalle, cmd.IpAddress);
+            cmd.InfoAdicional, detalle,
+            ipAddress: cmd.IpAddress, id: notaId);
 
         var xmlResult = xml.GenerarXmlNotaCredito(nota, empresa);
         if (xmlResult.IsError) return xmlResult.Errors;

@@ -22,6 +22,7 @@ try
     var app = builder.Build();
 
     app.UseExceptionHandler();
+    app.UseRateLimiter();
 
     if (!app.Environment.IsDevelopment())
         app.UseHttpsRedirection();

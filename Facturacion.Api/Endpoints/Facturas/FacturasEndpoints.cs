@@ -3,8 +3,6 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
-using Facturacion.Core.Enums;
-using Facturacion.Core.Metodos;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +14,8 @@ public static class FacturasEndpoints
     {
         var group = app.MapGroup("/facturas")
             .WithTags("Facturas")
-            .AllowAnonymous();
+            .RequireAuthorization()
+            .RequireRateLimiting("emision");
 
         group.MapPost("/", Emitir).WithName("EmitirFactura");
         group.MapPost("/preview", Preview).WithName("PreviewFactura");
@@ -29,38 +28,41 @@ public static class FacturasEndpoints
         [FromBody] EmitirFacturaRequest req,
         [FromServices] GenerarPreviewPdf useCase,
         [FromServices] IValidator<EmitirFacturaRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
 
-        var secuencialPreview = req.Secuencial ?? "000000001";
-        var claveAcceso = GeneradorClaveAcceso.Generar(
-            req.FechaEmision, TipoDocumentoSri.Factura, req.EmpresaRuc,
-            req.Ambiente, req.Estab, req.PtoEmi, secuencialPreview);
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
 
-        var facturaId = Guid.NewGuid();
+        var formasPago = req.FormasPago
+            .Select(f => new FormaPago(f.Codigo, f.Total, f.Plazo, f.UnidadTiempo))
+            .ToList();
+
+        var infoAdicional = req.InfoAdicional
+            .Select(i => new InfoAdicional(i.Nombre, i.Valor))
+            .ToList();
+
         var detalle = req.Detalle
-            .Select(d => FacturaDetalle.Crear(
-                facturaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
+            .Select(d => new ComandoDetalleFactura(
+                d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
                 d.Cantidad, d.PrecioUnitario, d.Descuento, d.PrecioTotalSinImpuesto,
                 d.IceCodigo, d.IceTarifa, d.IceBase, d.IceValor,
                 d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor))
             .ToList();
 
-        var factura = Factura.Crear(
-            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, secuencialPreview, claveAcceso,
+        var cmd = new ComandoEmitirFactura(
+            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial,
             req.FechaEmision, req.TipoIdentificacionComprador, req.IdentificacionComprador,
             req.RazonSocialComprador, req.DireccionComprador, req.DirEstablecimiento,
             req.TotalSinImpuestos, req.TotalDescuento, req.BaseImponibleIce, req.ValorIce,
             req.BaseImponibleIva, req.ValorIva, req.Propina, req.ImporteTotal,
-            req.GuiaRemision,
-            req.FormasPago.Select(f => new FormaPago(f.Codigo, f.Total, f.Plazo, f.UnidadTiempo)).ToList(),
-            req.InfoAdicional.Select(i => new InfoAdicional(i.Nombre, i.Valor)).ToList(),
-            detalle);
+            req.GuiaRemision, formasPago, infoAdicional, detalle, CuentaId: cuentaId);
 
-        var result = await useCase.EjecutarAsync(req.EmpresaRuc, factura, ct);
+        var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(
             bytes => Results.File(bytes, "application/pdf", "preview-factura.pdf"),
             errors => errors.ToProblemResult());
@@ -105,13 +107,16 @@ public static class FacturasEndpoints
             .ToList();
 
         var ip = ctx.Connection.RemoteIpAddress?.ToString();
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
         var cmd = new ComandoEmitirFactura(
             req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial,
             req.FechaEmision, req.TipoIdentificacionComprador, req.IdentificacionComprador,
             req.RazonSocialComprador, req.DireccionComprador, req.DirEstablecimiento,
             req.TotalSinImpuestos, req.TotalDescuento, req.BaseImponibleIce, req.ValorIce,
             req.BaseImponibleIva, req.ValorIva, req.Propina, req.ImporteTotal,
-            req.GuiaRemision, formasPago, infoAdicional, detalle, ip);
+            req.GuiaRemision, formasPago, infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(

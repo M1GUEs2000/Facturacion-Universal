@@ -1,4 +1,5 @@
 using Facturacion.Core.Entidades;
+using Facturacion.Infraestructura.Seguridad;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,7 +20,12 @@ public class EmpresaConfiguracion : IEntityTypeConfiguration<Empresa>
         builder.Property(e => e.LogoPath).HasColumnName("logo_path").HasMaxLength(500);
         builder.Property(e => e.LogoContentType).HasColumnName("logo_content_type").HasMaxLength(100);
         builder.Property(e => e.CertificadoPath).HasColumnName("certificado_path").HasMaxLength(500).IsRequired();
-        builder.Property(e => e.CertPassword).HasColumnName("cert_password").IsRequired();
+        builder.Property(e => e.CertPassword)
+            .HasColumnName("cert_password")
+            .IsRequired()
+            .HasConversion(
+                v => CertPasswordEncryption.Encrypt(v),
+                v => CertPasswordEncryption.Decrypt(v));
         builder.Property(e => e.CuentaId).HasColumnName("cuenta_id").IsRequired();
         builder.HasOne(e => e.Cuenta).WithMany().HasForeignKey(e => e.CuentaId);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();

@@ -11,6 +11,9 @@ public static class Errores
 
         public static readonly Error RucDuplicado =
             Error.Conflict("Empresa.RucDuplicado", "Ya existe una empresa con ese RUC.");
+
+        public static readonly Error Prohibido =
+            Error.Forbidden("Empresa.Prohibido", "No tiene acceso a esta empresa.");
     }
 
     public static class Factura
@@ -103,5 +106,12 @@ public static class Errores
     {
         public static readonly Error ErrorSerializacion =
             Error.Failure("Xml.ErrorSerializacion", "No se pudo serializar el documento XML.");
+    }
+
+    public static class Secuencial
+    {
+        public static Error NoConfigurado(string ruc, string tipo) =>
+            Error.NotFound("Secuencial.NoConfigurado",
+                $"No existe secuencial configurado para RUC {ruc} / tipo {tipo}.");
     }
 }

@@ -41,6 +41,10 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
             logger.LogError(ex, "Error HTTP enviando documento al SRI ({Endpoint})", endpoint);
             return Errores.Sri.ErrorComunicacion;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error inesperado enviando documento al SRI");
@@ -94,6 +98,10 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
             {
                 logger.LogError(ex, "Error HTTP consultando autorizacion SRI ({Endpoint})", endpoint);
                 return Errores.Sri.ErrorComunicacion;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

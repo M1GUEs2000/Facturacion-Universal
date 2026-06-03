@@ -12,7 +12,8 @@ public static class ParametrosEndpoints
     public static WebApplication MapParametrosEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/parametros")
-            .WithTags("Parametros");
+            .WithTags("Parametros")
+            .RequireAuthorization();
 
         group.MapGet("/{empresaRuc}/sri", ListarSri).WithName("ListarSecuencialesSri");
         group.MapPut("/{empresaRuc}/sri/{tipoComprobante}", GuardarSri).WithName("GuardarSecuencialSri");
