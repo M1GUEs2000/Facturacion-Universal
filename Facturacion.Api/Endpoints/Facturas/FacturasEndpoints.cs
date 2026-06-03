@@ -104,9 +104,13 @@ public static class FacturasEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionFactura useCase,
+        HttpContext ctx,
         CancellationToken ct)
     {
-        var result = await useCase.EjecutarAsync(id, ct);
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var result = await useCase.EjecutarAsync(id, cuentaId, ct);
         return result.Match(
             factura => Results.Ok(FacturaResponse.From(factura)),
             errors => errors.ToProblemResult());

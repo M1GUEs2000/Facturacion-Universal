@@ -16,7 +16,7 @@ public class ReintentarEmisionFactura(
     IServicioStorageFirmaYLogo storageFirma,
     OrquestadorReintento orquestador)
 {
-    public async Task<ErrorOr<Factura>> EjecutarAsync(Guid facturaId, CancellationToken ct = default)
+    public async Task<ErrorOr<Factura>> EjecutarAsync(Guid facturaId, Guid cuentaId, CancellationToken ct = default)
     {
         var factura = await facturas.ObtenerPorIdAsync(facturaId, ct);
         if (factura is null) return Errores.Factura.NoEncontrada;
@@ -26,6 +26,7 @@ public class ReintentarEmisionFactura(
 
         var empresa = await empresas.ObtenerPorRucAsync(factura.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
+        if (empresa.CuentaId != cuentaId) return Errores.Empresa.Prohibido;
 
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;

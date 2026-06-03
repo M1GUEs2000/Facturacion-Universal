@@ -26,8 +26,17 @@ public static class ParametrosEndpoints
     private static async Task<IResult> ListarSri(
         string empresaRuc,
         [FromServices] ISecuencialesSriRepositorio parametros,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
         CancellationToken ct)
     {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound(new { error = "La empresa no existe." });
+
         var lista = await parametros.ListarPorEmpresaAsync(empresaRuc, ct);
         return Results.Ok(lista.Select(SecuencialSriResponse.From));
     }
@@ -37,9 +46,18 @@ public static class ParametrosEndpoints
         string tipoComprobante,
         [FromBody] SecuencialSriRequest req,
         [FromServices] GuardarSecuencialSri useCase,
+        [FromServices] IEmpresasRepositorio empresas,
         [FromServices] IValidator<SecuencialSriRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound(new { error = "La empresa no existe." });
+
         var request = req with { TipoComprobante = tipoComprobante };
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
@@ -58,8 +76,17 @@ public static class ParametrosEndpoints
     private static async Task<IResult> ObtenerFacturacion(
         string empresaRuc,
         [FromServices] IParametrosFacturacionRepositorio parametros,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
         CancellationToken ct)
     {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound(new { error = "La empresa no existe." });
+
         var config = await parametros.ObtenerPorEmpresaAsync(empresaRuc, ct);
         return config is null
             ? Results.NotFound(new { error = "Los parametros de facturacion no existen." })
@@ -70,9 +97,18 @@ public static class ParametrosEndpoints
         string empresaRuc,
         [FromBody] ParametrosFacturacionRequest req,
         [FromServices] GuardarParametrosFacturacion useCase,
+        [FromServices] IEmpresasRepositorio empresas,
         [FromServices] IValidator<ParametrosFacturacionRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound(new { error = "La empresa no existe." });
+
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());

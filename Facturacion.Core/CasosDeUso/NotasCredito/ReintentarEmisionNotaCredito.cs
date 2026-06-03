@@ -16,7 +16,7 @@ public class ReintentarEmisionNotaCredito(
     IServicioStorageFirmaYLogo storageFirma,
     OrquestadorReintento orquestador)
 {
-    public async Task<ErrorOr<NotaCredito>> EjecutarAsync(Guid notaId, CancellationToken ct = default)
+    public async Task<ErrorOr<NotaCredito>> EjecutarAsync(Guid notaId, Guid cuentaId, CancellationToken ct = default)
     {
         var nota = await notasCredito.ObtenerPorIdAsync(notaId, ct);
         if (nota is null) return Errores.NotaCredito.NoEncontrada;
@@ -26,6 +26,7 @@ public class ReintentarEmisionNotaCredito(
 
         var empresa = await empresas.ObtenerPorRucAsync(nota.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
+        if (empresa.CuentaId != cuentaId) return Errores.Empresa.Prohibido;
 
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;

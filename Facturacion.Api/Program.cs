@@ -38,6 +38,7 @@ try
         ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
         ctx.Response.Headers["X-Frame-Options"] = "DENY";
         ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
+        ctx.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
         ctx.Response.Headers["X-Correlation-Id"] =
             Activity.Current?.TraceId.ToString() ?? Guid.NewGuid().ToString("N");
         await next();

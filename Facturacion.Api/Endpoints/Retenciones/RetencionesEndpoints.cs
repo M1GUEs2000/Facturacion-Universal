@@ -98,9 +98,13 @@ public static class RetencionesEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionRetencion useCase,
+        HttpContext ctx,
         CancellationToken ct)
     {
-        var result = await useCase.EjecutarAsync(id, ct);
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var result = await useCase.EjecutarAsync(id, cuentaId, ct);
         return result.Match(
             retencion => Results.Ok(RetencionResponse.From(retencion)),
             errors => errors.ToProblemResult());

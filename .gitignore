@@ -47,7 +47,6 @@ nunit-*.xml
 .env.*
 !.env.example
 appsettings.*.json
-!appsettings.Development.json
 secrets.json
 *.p12
 *.pfx

@@ -1,4 +1,5 @@
 using ErrorOr;
+using Facturacion.Core;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Infraestructura.Persistencia.Contexto;
