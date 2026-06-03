@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Facturacion.Api.Endpoints.Empresas;
 using Facturacion.Api.Endpoints.Facturas;
 using Facturacion.Api.Endpoints.NotasCredito;
@@ -12,6 +13,8 @@ using Facturacion.Core.CasosDeUso.Parametros;
 using Facturacion.Core.CasosDeUso.Retenciones;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Facturacion.Api.Extensions;
 
@@ -24,11 +27,30 @@ public static class ApiExtensions
         services.AddCors(options =>
         {
             options.AddPolicy(CorsPolicy, policy =>
-                policy.WithOrigins(
-                        "http://localhost:5173",
-                        "http://127.0.0.1:5173")
+            {
+                var origins = config.GetSection("Cors:Origins").Get<string[]>()
+                    ?? ["http://localhost:5173", "http://127.0.0.1:5173"];
+                policy.WithOrigins(origins)
                     .AllowAnyHeader()
-                    .AllowAnyMethod());
+                    .AllowAnyMethod();
+            });
+        });
+
+        services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("emision", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: ctx.User.FindFirst("sub")?.Value
+                        ?? ctx.Connection.RemoteIpAddress?.ToString()
+                        ?? "anon",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 60,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -36,6 +58,12 @@ public static class ApiExtensions
             {
                 options.Authority = config["Jwt:Authority"];
                 options.Audience = config["Jwt:Audience"];
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 }
+                };
             });
         services.AddAuthorization();
 
@@ -58,6 +86,7 @@ public static class ApiExtensions
         services.AddScoped<OrquestadorEmision>();
         services.AddScoped<OrquestadorReintento>();
         services.AddScoped<GenerarPreviewPdf>();
+        services.AddScoped<ObtenerUrlDescarga>();
         services.AddScoped<EmitirFactura>();
         services.AddScoped<EmitirNotaCredito>();
         services.AddScoped<EmitirRetencion>();

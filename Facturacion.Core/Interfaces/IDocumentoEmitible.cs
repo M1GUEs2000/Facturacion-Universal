@@ -4,6 +4,7 @@ namespace Facturacion.Core.Interfaces;
 
 public interface IDocumentoEmitible
 {
+    string EmpresaRuc { get; }
     EstadoSri EstadoSri { get; }
     string? XmlFirmadoPath { get; }
     string? XmlAutorizadoPath { get; }

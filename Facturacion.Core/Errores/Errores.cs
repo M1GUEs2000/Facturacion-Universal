@@ -11,6 +11,9 @@ public static class Errores
 
         public static readonly Error RucDuplicado =
             Error.Conflict("Empresa.RucDuplicado", "Ya existe una empresa con ese RUC.");
+
+        public static readonly Error Prohibido =
+            Error.Forbidden("Empresa.Prohibido", "No tiene acceso a esta empresa.");
     }
 
     public static class Factura
@@ -97,11 +100,30 @@ public static class Errores
 
         public static readonly Error ArchivoNoEncontrado =
             Error.NotFound("Storage.ArchivoNoEncontrado", "El archivo no existe en el storage.");
+
+        public static readonly Error UrlFirmadaNoSoportada =
+            Error.Failure("Storage.UrlFirmadaNoSoportada", "Este proveedor de storage no soporta URLs firmadas.");
+    }
+
+    public static class Documento
+    {
+        public static readonly Error SinPdf =
+            Error.NotFound("Documento.SinPdf", "El documento no tiene RIDE PDF generado todavía.");
+
+        public static readonly Error SinXml =
+            Error.NotFound("Documento.SinXml", "El documento no tiene XML autorizado todavía.");
     }
 
     public static class Xml
     {
         public static readonly Error ErrorSerializacion =
             Error.Failure("Xml.ErrorSerializacion", "No se pudo serializar el documento XML.");
+    }
+
+    public static class Secuencial
+    {
+        public static Error NoConfigurado(string ruc, string tipo) =>
+            Error.NotFound("Secuencial.NoConfigurado",
+                $"No existe secuencial configurado para RUC {ruc} / tipo {tipo}.");
     }
 }

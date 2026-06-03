@@ -3,13 +3,15 @@ using Facturacion.Core.Entidades;
 using Facturacion.Core;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Core.Metodos;
 
 namespace Facturacion.Core.CasosDeUso.Empresas;
 
 public record ComandoActualizarCertificado(
     string Ruc,
     byte[] CertificadoP12,
-    string CertPassword);
+    string CertPassword,
+    Guid CuentaId);
 
 public class ActualizarCertificado(IEmpresasRepositorio empresas, IServicioStorageFirmaYLogo storage)
 {
@@ -19,7 +21,10 @@ public class ActualizarCertificado(IEmpresasRepositorio empresas, IServicioStora
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
 
-        var certPath = $"{cmd.Ruc}/certificado.p12";
+        if (empresa.CuentaId != cmd.CuentaId)
+            return Errores.Empresa.Prohibido;
+
+        var certPath = RutasStorage.Certificado(cmd.Ruc);
         var certResult = await storage.GuardarAsync(cmd.CertificadoP12, certPath, ct);
         if (certResult.IsError) return certResult.Errors;
 

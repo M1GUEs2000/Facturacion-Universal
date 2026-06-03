@@ -1,6 +1,7 @@
 using Facturacion.Api.Contratos.Empresas;
 using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Empresas;
+using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,8 @@ public static class EmpresasEndpoints
     public static WebApplication MapEmpresasEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/empresas")
-            .WithTags("Empresas");
+            .WithTags("Empresas")
+            .RequireAuthorization();
 
         group.MapGet("", Listar).WithName("ListarEmpresas");
         group.MapGet("/{ruc}", ObtenerPorRuc).WithName("ObtenerEmpresaPorRuc");
@@ -24,22 +26,46 @@ public static class EmpresasEndpoints
     }
 
     private static async Task<IResult> Listar(
-        [FromServices] Facturacion.Core.Interfaces.Repositorios.IEmpresasRepositorio empresas,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
         CancellationToken ct)
     {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
         var lista = await empresas.ListarAsync(ct);
-        return Results.Ok(lista.Select(EmpresaResponse.From));
+        return Results.Ok(lista.Where(e => e.CuentaId == cuentaId).Select(EmpresaResponse.From));
+    }
+
+    private static async Task<IResult> ObtenerPorRuc(
+        string ruc,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var empresa = await empresas.ObtenerPorRucAsync(ruc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound(new { error = "La empresa no existe." });
+
+        return Results.Ok(EmpresaResponse.From(empresa));
     }
 
     private static async Task<IResult> Guardar(
         [FromBody] GuardarEmpresaRequest req,
         [FromServices] GuardarEmpresa useCase,
         [FromServices] IValidator<GuardarEmpresaRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
+
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
 
         var certResult = DecodificarBase64Opcional(req.CertificadoP12Base64, "CertificadoP12Base64");
         if (certResult.Error is not null)
@@ -51,6 +77,7 @@ public static class EmpresasEndpoints
 
         var cmd = new ComandoGuardarEmpresa(
             req.Ruc, req.Nombre, req.DirMatriz,
+            cuentaId,
             req.NombreComercial, certResult.Bytes, req.CertPassword,
             logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
@@ -60,26 +87,19 @@ public static class EmpresasEndpoints
             errors => errors.ToProblemResult());
     }
 
-    private static async Task<IResult> ObtenerPorRuc(
-        string ruc,
-        [FromServices] Facturacion.Core.Interfaces.Repositorios.IEmpresasRepositorio empresas,
-        CancellationToken ct)
-    {
-        var empresa = await empresas.ObtenerPorRucAsync(ruc, ct);
-        return empresa is null
-            ? Results.NotFound(new { error = "La empresa no existe." })
-            : Results.Ok(EmpresaResponse.From(empresa));
-    }
-
     private static async Task<IResult> Registrar(
         [FromBody] RegistrarEmpresaRequest req,
         [FromServices] RegistrarEmpresa useCase,
         [FromServices] IValidator<RegistrarEmpresaRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
+
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
 
         byte[] certBytes;
         try { certBytes = Convert.FromBase64String(req.CertificadoP12Base64); }
@@ -91,8 +111,8 @@ public static class EmpresasEndpoints
 
         var cmd = new ComandoRegistrarEmpresa(
             req.Ruc, req.Nombre, req.DirMatriz,
-            certBytes, req.CertPassword, req.NombreComercial,
-            logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
+            certBytes, req.CertPassword, cuentaId,
+            req.NombreComercial, logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(
@@ -105,11 +125,15 @@ public static class EmpresasEndpoints
         [FromBody] ActualizarEmpresaRequest req,
         [FromServices] ActualizarEmpresa useCase,
         [FromServices] IValidator<ActualizarEmpresaRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
+
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
 
         byte[]? certBytes = null;
         if (!string.IsNullOrWhiteSpace(req.CertificadoP12Base64))
@@ -124,6 +148,7 @@ public static class EmpresasEndpoints
 
         var cmd = new ComandoActualizarEmpresa(
             ruc, req.Nombre, req.DirMatriz,
+            cuentaId,
             req.NombreComercial, certBytes, req.CertPassword,
             logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
@@ -138,17 +163,21 @@ public static class EmpresasEndpoints
         [FromBody] ActualizarCertificadoRequest req,
         [FromServices] ActualizarCertificado useCase,
         [FromServices] IValidator<ActualizarCertificadoRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
 
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
         byte[] certBytes;
         try { certBytes = Convert.FromBase64String(req.CertificadoP12Base64); }
         catch { return Results.BadRequest(new { error = "CertificadoP12Base64 no es Base64 valido." }); }
 
-        var cmd = new ComandoActualizarCertificado(ruc, certBytes, req.CertPassword);
+        var cmd = new ComandoActualizarCertificado(ruc, certBytes, req.CertPassword, cuentaId);
         var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(
             empresa => Results.Ok(EmpresaResponse.From(empresa)),
@@ -164,9 +193,26 @@ public static class EmpresasEndpoints
         try { logoBytes = Convert.FromBase64String(logoBase64); }
         catch { return (null, "LogoBase64 no es Base64 valido."); }
 
-        return logoBytes.Length > EmpresaRequestValidation.LogoMaxBytes
-            ? (null, "El logo no puede superar 2 MB.")
-            : (logoBytes, null);
+        if (logoBytes.Length > EmpresaRequestValidation.LogoMaxBytes)
+            return (null, "El logo no puede superar 2 MB.");
+
+        if (!EsImagenValida(logoBytes))
+            return (null, "El logo debe ser una imagen PNG, JPEG o WebP válida.");
+
+        return (logoBytes, null);
+    }
+
+    private static bool EsImagenValida(byte[] bytes)
+    {
+        if (bytes.Length < 12) return false;
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return true;
+        // JPEG: FF D8 FF
+        if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return true;
+        // WebP: RIFF????WEBP
+        if (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+            bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return true;
+        return false;
     }
 
     private static (byte[]? Bytes, string? Error) DecodificarBase64Opcional(string? base64, string campo)

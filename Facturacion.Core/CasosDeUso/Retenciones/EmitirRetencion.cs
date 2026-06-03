@@ -37,7 +37,8 @@ public record ComandoEmitirRetencion(
     decimal TotalRetenido,
     List<InfoAdicional> InfoAdicional,
     List<ComandoDetalleRetencion> Detalle,
-    string? IpAddress = null);
+    string? IpAddress = null,
+    Guid? CuentaId = null);
 
 public class EmitirRetencion(
     IEmpresasRepositorio empresas,
@@ -55,18 +56,29 @@ public class EmitirRetencion(
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
 
+        if (cmd.CuentaId.HasValue && empresa.CuentaId != cmd.CuentaId.Value)
+            return Errores.Empresa.Prohibido;
+
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
-        var secuencial = cmd.Secuencial
-            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "07", ct)).ToString("D9");
+        string secuencial;
+        if (cmd.Secuencial is not null)
+        {
+            if (await retenciones.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+                return Errores.Retencion.SecuencialDuplicado;
+            secuencial = cmd.Secuencial;
+        }
+        else
+        {
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "07", ct);
+            if (secResult.IsError) return secResult.Errors;
+            secuencial = secResult.Value.ToString("D9");
+        }
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Retencion, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
-
-        if (await retenciones.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
-            return Errores.Retencion.SecuencialDuplicado;
 
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
@@ -81,7 +93,8 @@ public class EmitirRetencion(
             cmd.FechaEmision, cmd.TipoIdentificacionSujeto, cmd.IdentificacionSujeto,
             cmd.RazonSocialSujeto, cmd.DireccionSujeto, cmd.PeriodoFiscal,
             cmd.TotalBaseImponible, cmd.TotalRetencionRenta, cmd.TotalRetencionIva, cmd.TotalRetenido,
-            cmd.InfoAdicional, detalle, cmd.IpAddress);
+            cmd.InfoAdicional, detalle,
+            ipAddress: cmd.IpAddress, id: retencionId);
 
         var xmlResult = xml.GenerarXmlRetencion(retencion, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;

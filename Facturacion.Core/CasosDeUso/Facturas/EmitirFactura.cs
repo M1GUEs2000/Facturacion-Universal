@@ -50,7 +50,8 @@ public record ComandoEmitirFactura(
     List<FormaPago> FormasPago,
     List<InfoAdicional> InfoAdicional,
     List<ComandoDetalleFactura> Detalle,
-    string? IpAddress = null);
+    string? IpAddress = null,
+    Guid? CuentaId = null);
 
 public class EmitirFactura(
     IEmpresasRepositorio empresas,
@@ -68,24 +69,34 @@ public class EmitirFactura(
         if (empresa is null)
             return Errores.Empresa.NoEncontrada;
 
+        if (cmd.CuentaId.HasValue && empresa.CuentaId != cmd.CuentaId.Value)
+            return Errores.Empresa.Prohibido;
+
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
 
-        var secuencial = cmd.Secuencial
-            ?? (await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "01", ct)).ToString("D9");
+        string secuencial;
+        if (cmd.Secuencial is not null)
+        {
+            if (await facturas.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, cmd.Secuencial, cmd.Ambiente, ct))
+                return Errores.Factura.SecuencialDuplicado;
+            secuencial = cmd.Secuencial;
+        }
+        else
+        {
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "01", ct);
+            if (secResult.IsError) return secResult.Errors;
+            secuencial = secResult.Value.ToString("D9");
+        }
 
         var claveAcceso = GeneradorClaveAcceso.Generar(
             cmd.FechaEmision, TipoDocumentoSri.Factura, empresa.Ruc,
             cmd.Ambiente, cmd.Estab, cmd.PtoEmi, secuencial);
 
-        if (await facturas.ExisteSecuencialActivoAsync(empresa.Ruc, cmd.Estab, cmd.PtoEmi, secuencial, cmd.Ambiente, ct))
-            return Errores.Factura.SecuencialDuplicado;
-
         var parametros = await parametrosRepo.ObtenerPorEmpresaAsync(cmd.EmpresaRuc, ct);
 
-        var facturaId = Guid.NewGuid();
         var detalle = cmd.Detalle.Select(d => FacturaDetalle.Crear(
-            facturaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
+            d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
             d.Cantidad, d.PrecioUnitario, d.Descuento, d.PrecioTotalSinImpuesto,
             d.IceCodigo, d.IceTarifa, d.IceBase, d.IceValor,
             d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor)).ToList();
@@ -96,7 +107,8 @@ public class EmitirFactura(
             cmd.RazonSocialComprador, cmd.DireccionComprador, cmd.DirEstablecimiento,
             cmd.TotalSinImpuestos, cmd.TotalDescuento, cmd.BaseImponibleIce, cmd.ValorIce,
             cmd.BaseImponibleIva, cmd.ValorIva, cmd.Propina, cmd.ImporteTotal,
-            cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle, cmd.IpAddress);
+            cmd.GuiaRemision, cmd.FormasPago, cmd.InfoAdicional, detalle,
+            ipAddress: cmd.IpAddress);
 
         var xmlResult = xml.GenerarXmlFactura(factura, empresa, parametros);
         if (xmlResult.IsError) return xmlResult.Errors;

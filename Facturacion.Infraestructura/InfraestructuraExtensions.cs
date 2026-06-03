@@ -2,6 +2,7 @@ using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Infraestructura.Persistencia.Contexto;
 using Facturacion.Infraestructura.Persistencia.Repositorios;
+using Facturacion.Infraestructura.Seguridad;
 using Facturacion.Infraestructura.Servicios.Firma;
 using Facturacion.Infraestructura.Servicios.Pdf;
 using Facturacion.Infraestructura.Servicios.Sri;
@@ -19,6 +20,11 @@ public static class InfraestructuraExtensions
     public static IServiceCollection AddInfraestructura(
         this IServiceCollection services, IConfiguration configuration)
     {
+        // Cifrado de CertPassword — clave de 32 bytes en base64 desde secrets manager
+        var certKeyBase64 = configuration["Encryption:CertPasswordKey"];
+        if (!string.IsNullOrWhiteSpace(certKeyBase64))
+            CertPasswordEncryption.Initialize(Convert.FromBase64String(certKeyBase64));
+
         // Persistencia
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));

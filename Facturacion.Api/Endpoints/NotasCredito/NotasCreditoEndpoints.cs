@@ -3,8 +3,7 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.NotasCredito;
 using Facturacion.Core.Entidades;
-using Facturacion.Core.Enums;
-using Facturacion.Core.Metodos;
+using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,50 +15,85 @@ public static class NotasCreditoEndpoints
     {
         var group = app.MapGroup("/notas-credito")
             .WithTags("Notas de Crédito")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("emision");
 
         group.MapPost("/", Emitir).WithName("EmitirNotaCredito");
         group.MapPost("/preview", Preview).WithName("PreviewNotaCredito");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarNotaCredito");
+        group.MapGet("/{id:guid}/pdf", ObtenerPdf).WithName("DescargarPdfNotaCredito");
+        group.MapGet("/{id:guid}/xml", ObtenerXml).WithName("DescargarXmlNotaCredito");
 
         return app;
+    }
+
+    private static async Task<IResult> ObtenerPdf(
+        Guid id,
+        [FromServices] INotasCreditoRepositorio repo,
+        [FromServices] ObtenerUrlDescarga useCase,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+        var nota = await repo.ObtenerPorIdAsync(id, ct);
+        if (nota is null) return Results.NotFound();
+        var result = await useCase.EjecutarAsync(nota, TipoArchivoDescarga.Pdf, cuentaId, ct);
+        return result.Match(r => Results.Ok(r), errors => errors.ToProblemResult());
+    }
+
+    private static async Task<IResult> ObtenerXml(
+        Guid id,
+        [FromServices] INotasCreditoRepositorio repo,
+        [FromServices] ObtenerUrlDescarga useCase,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+        var nota = await repo.ObtenerPorIdAsync(id, ct);
+        if (nota is null) return Results.NotFound();
+        var result = await useCase.EjecutarAsync(nota, TipoArchivoDescarga.Xml, cuentaId, ct);
+        return result.Match(r => Results.Ok(r), errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Preview(
         [FromBody] EmitirNotaCreditoRequest req,
         [FromServices] GenerarPreviewPdf useCase,
         [FromServices] IValidator<EmitirNotaCreditoRequest> validator,
+        HttpContext ctx,
         CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)
             return Results.ValidationProblem(validation.ToDictionary());
 
-        var claveAcceso = GeneradorClaveAcceso.Generar(
-            req.FechaEmision, TipoDocumentoSri.NotaCredito, req.EmpresaRuc,
-            req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial);
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
 
-        var notaId = Guid.NewGuid();
+        var infoAdicional = req.InfoAdicional
+            .Select(i => new InfoAdicional(i.Nombre, i.Valor))
+            .ToList();
+
         var detalle = req.Detalle
-            .Select(d => NotaCreditoDetalle.Crear(
-                notaId, d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
+            .Select(d => new ComandoDetalleNotaCredito(
+                d.Orden, d.CodigoPrincipal, d.CodigoAuxiliar, d.Descripcion,
                 d.Cantidad, d.PrecioUnitario, d.Descuento, d.PrecioTotalSinImpuesto,
                 d.IceCodigo, d.IceTarifa, d.IceBase, d.IceValor,
                 d.IvaCodigo, d.IvaTarifa, d.IvaBase, d.IvaValor))
             .ToList();
 
-        var nota = NotaCredito.Crear(
-            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial, claveAcceso,
+        var cmd = new ComandoEmitirNotaCredito(
+            req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial,
             req.FechaEmision, req.TipoIdentificacionComprador, req.IdentificacionComprador,
             req.RazonSocialComprador, req.DireccionComprador, req.DirEstablecimiento,
             req.DocModificadoTipo, req.DocModificadoNumero, req.DocModificadoFecha,
             req.DocModificadoClaveAcceso, req.Motivo,
             req.TotalSinImpuestos, req.TotalDescuento, req.BaseImponibleIce, req.ValorIce,
             req.BaseImponibleIva, req.ValorIva, req.ValorModificacion,
-            req.InfoAdicional.Select(i => new InfoAdicional(i.Nombre, i.Valor)).ToList(),
-            detalle);
+            infoAdicional, detalle, CuentaId: cuentaId);
 
-        var result = await useCase.EjecutarAsync(req.EmpresaRuc, nota, ct);
+        var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(
             bytes => Results.File(bytes, "application/pdf", "preview-nota-credito.pdf"),
             errors => errors.ToProblemResult());
@@ -68,9 +102,13 @@ public static class NotasCreditoEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionNotaCredito useCase,
+        HttpContext ctx,
         CancellationToken ct)
     {
-        var result = await useCase.EjecutarAsync(id, ct);
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        var result = await useCase.EjecutarAsync(id, cuentaId, ct);
         return result.Match(
             nota => Results.Ok(NotaCreditoResponse.From(nota)),
             errors => errors.ToProblemResult());
@@ -100,6 +138,9 @@ public static class NotasCreditoEndpoints
             .ToList();
 
         var ip = ctx.Connection.RemoteIpAddress?.ToString();
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
         var cmd = new ComandoEmitirNotaCredito(
             req.EmpresaRuc, req.Ambiente, req.Estab, req.PtoEmi, req.Secuencial,
             req.FechaEmision, req.TipoIdentificacionComprador, req.IdentificacionComprador,
@@ -108,7 +149,7 @@ public static class NotasCreditoEndpoints
             req.DocModificadoClaveAcceso, req.Motivo,
             req.TotalSinImpuestos, req.TotalDescuento, req.BaseImponibleIce, req.ValorIce,
             req.BaseImponibleIva, req.ValorIva, req.ValorModificacion,
-            infoAdicional, detalle, ip);
+            infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
         return result.Match(

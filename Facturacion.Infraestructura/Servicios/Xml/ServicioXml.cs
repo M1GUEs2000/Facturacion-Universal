@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using System.Xml;
@@ -15,6 +16,7 @@ namespace Facturacion.Infraestructura.Servicios.Xml;
 public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
 {
     private static readonly XmlSerializerNamespaces EmptyNs = BuildEmptyNs();
+    private static readonly ConcurrentDictionary<Type, XmlSerializer> SerializerCache = new();
 
     private static XmlSerializerNamespaces BuildEmptyNs()
     {
@@ -167,57 +169,50 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
             DirMatriz = e.DirMatriz
         };
 
-    private static List<XmlTotalImpuesto> BuildTotalImpuestosFactura(Factura f)
+    private static List<XmlTotalImpuesto> BuildTotalImpuestosFactura(Factura f) =>
+        BuildTotalImpuestos(f.Detalle,
+            d => d.IceCodigo, d => d.IceTarifa, d => d.IceBase, d => d.IceValor,
+            d => d.IvaCodigo, d => d.IvaTarifa, d => d.IvaBase, d => d.IvaValor);
+
+    private static List<XmlTotalImpuesto> BuildTotalImpuestosNota(NotaCredito n) =>
+        BuildTotalImpuestos(n.Detalle,
+            d => d.IceCodigo, d => d.IceTarifa, d => d.IceBase, d => d.IceValor,
+            d => d.IvaCodigo, d => d.IvaTarifa, d => d.IvaBase, d => d.IvaValor);
+
+    private static List<XmlTotalImpuesto> BuildTotalImpuestos<T>(
+        IEnumerable<T> detalle,
+        Func<T, string?> getIceCodigo,
+        Func<T, decimal?> getIceTarifa,
+        Func<T, decimal?> getIceBase,
+        Func<T, decimal?> getIceValor,
+        Func<T, CodigoIva> getIvaCodigo,
+        Func<T, decimal> getIvaTarifa,
+        Func<T, decimal> getIvaBase,
+        Func<T, decimal> getIvaValor)
     {
         var lista = new List<XmlTotalImpuesto>();
+        var detalleList = detalle.ToList();
 
         // ICE (código 3) — primero, requerido antes del IVA por el SRI
-        foreach (var g in f.Detalle.Where(d => d.IceCodigo != null).GroupBy(d => d.IceCodigo!))
+        foreach (var g in detalleList.Where(d => getIceCodigo(d) != null).GroupBy(getIceCodigo))
             lista.Add(new XmlTotalImpuesto
             {
                 Codigo = "3",
-                CodigoPorcentaje = g.Key,
-                BaseImponible = M(g.Sum(d => d.IceBase ?? 0m)),
-                Tarifa = M(g.First().IceTarifa ?? 0m),
-                Valor = M(g.Sum(d => d.IceValor ?? 0m))
+                CodigoPorcentaje = g.Key!,
+                BaseImponible = M(g.Sum(d => getIceBase(d) ?? 0m)),
+                Tarifa = M(getIceTarifa(g.First()) ?? 0m),
+                Valor = M(g.Sum(d => getIceValor(d) ?? 0m))
             });
 
         // IVA (código 2) — segundo
-        foreach (var g in f.Detalle.GroupBy(d => d.IvaCodigo))
+        foreach (var g in detalleList.GroupBy(getIvaCodigo))
             lista.Add(new XmlTotalImpuesto
             {
                 Codigo = "2",
                 CodigoPorcentaje = ((int)g.Key).ToString(),
-                BaseImponible = M(g.Sum(d => d.IvaBase)),
-                Tarifa = M(g.First().IvaTarifa),
-                Valor = M(g.Sum(d => d.IvaValor))
-            });
-
-        return lista;
-    }
-
-    private static List<XmlTotalImpuesto> BuildTotalImpuestosNota(NotaCredito n)
-    {
-        var lista = new List<XmlTotalImpuesto>();
-
-        foreach (var g in n.Detalle.Where(d => d.IceCodigo != null).GroupBy(d => d.IceCodigo!))
-            lista.Add(new XmlTotalImpuesto
-            {
-                Codigo = "3",
-                CodigoPorcentaje = g.Key,
-                BaseImponible = M(g.Sum(d => d.IceBase ?? 0m)),
-                Tarifa = M(g.First().IceTarifa ?? 0m),
-                Valor = M(g.Sum(d => d.IceValor ?? 0m))
-            });
-
-        foreach (var g in n.Detalle.GroupBy(d => d.IvaCodigo))
-            lista.Add(new XmlTotalImpuesto
-            {
-                Codigo = "2",
-                CodigoPorcentaje = ((int)g.Key).ToString(),
-                BaseImponible = M(g.Sum(d => d.IvaBase)),
-                Tarifa = M(g.First().IvaTarifa),
-                Valor = M(g.Sum(d => d.IvaValor))
+                BaseImponible = M(g.Sum(getIvaBase)),
+                Tarifa = M(getIvaTarifa(g.First())),
+                Valor = M(g.Sum(getIvaValor))
             });
 
         return lista;
@@ -255,28 +250,24 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
         string? iceCodigo, decimal? iceTarifa, decimal? iceBase, decimal? iceValor,
         CodigoIva ivaCodigo, decimal ivaTarifa, decimal ivaBase, decimal ivaValor)
     {
-        var lista = new List<XmlImpuestoDetalle>();
-
-        if (iceCodigo != null)
-            lista.Add(new XmlImpuestoDetalle
-            {
-                Codigo = "3",
-                CodigoPorcentaje = iceCodigo,
-                Tarifa = M(iceTarifa ?? 0m),
-                BaseImponible = M(iceBase ?? 0m),
-                Valor = M(iceValor ?? 0m)
-            });
-
-        lista.Add(new XmlImpuestoDetalle
+        var iva = new XmlImpuestoDetalle
         {
             Codigo = "2",
             CodigoPorcentaje = ((int)ivaCodigo).ToString(),
             Tarifa = M(ivaTarifa),
             BaseImponible = M(ivaBase),
             Valor = M(ivaValor)
-        });
-
-        return lista;
+        };
+        if (iceCodigo is null)
+            return [iva];
+        return [new XmlImpuestoDetalle
+        {
+            Codigo = "3",
+            CodigoPorcentaje = iceCodigo,
+            Tarifa = M(iceTarifa ?? 0m),
+            BaseImponible = M(iceBase ?? 0m),
+            Valor = M(iceValor ?? 0m)
+        }, iva];
     }
 
     private static XmlCampoAdicional MapCampoAdicional(InfoAdicional ia) =>
@@ -291,7 +282,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
 
     private static string Serializar<T>(T modelo)
     {
-        var serializer = new XmlSerializer(typeof(T));
+        var serializer = SerializerCache.GetOrAdd(typeof(T), t => new XmlSerializer(t));
         var settings = new XmlWriterSettings
         {
             Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),

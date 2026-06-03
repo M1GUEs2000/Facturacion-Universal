@@ -42,12 +42,12 @@ public record RetencionResponse(
     string EstadoSri,
     string? NumeroAutorizacion,
     DateTimeOffset? FechaAutorizacion,
-    string? XmlAutorizadoPath,
-    string? PdfPath)
+    bool HasPdf,
+    bool HasXml)
 {
     public static RetencionResponse From(Retencion r) =>
         new(r.Id, r.ClaveAcceso, r.EstadoSri.ToString(), r.NumeroAutorizacion,
-            r.FechaAutorizacion, r.XmlAutorizadoPath, r.PdfPath);
+            r.FechaAutorizacion, r.PdfPath is not null, r.XmlAutorizadoPath is not null);
 }
 
 public class EmitirRetencionValidator : AbstractValidator<EmitirRetencionRequest>

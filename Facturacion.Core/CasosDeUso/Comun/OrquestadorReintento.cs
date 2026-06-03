@@ -47,7 +47,7 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
 
         // ── Paso 2: Recepción SRI ─────────────────────────────────────────────
         // Solo si aún no está en PendienteAutorizacion o posterior.
-        if (doc.EstadoSri < EstadoSri.PendienteAutorizacion)
+        if (doc.EstadoSri is EstadoSri.Pendiente or EstadoSri.Enviado)
         {
             var xmlBytesResult = await storage.ObtenerAsync(doc.XmlFirmadoPath!, ct);
             if (xmlBytesResult.IsError) return xmlBytesResult.Errors;

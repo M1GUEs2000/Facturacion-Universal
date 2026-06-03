@@ -13,7 +13,7 @@ public class FacturaDetalleConfiguracion : IEntityTypeConfiguration<FacturaDetal
         builder.HasKey(d => d.Id);
 
         builder.Property(d => d.Id).HasColumnName("id");
-        builder.Property(d => d.FacturaId).HasColumnName("factura_id").IsRequired();
+        builder.Property<Guid>("FacturaId").HasColumnName("factura_id").IsRequired();
         builder.Property(d => d.Orden).HasColumnName("orden").IsRequired();
         builder.Property(d => d.CodigoPrincipal).HasColumnName("codigo_principal").HasMaxLength(25).IsRequired();
         builder.Property(d => d.CodigoAuxiliar).HasColumnName("codigo_auxiliar").HasMaxLength(25);
@@ -31,6 +31,6 @@ public class FacturaDetalleConfiguracion : IEntityTypeConfiguration<FacturaDetal
         builder.Property(d => d.IvaBase).HasColumnName("iva_base").HasColumnType("numeric(12,2)").IsRequired();
         builder.Property(d => d.IvaValor).HasColumnName("iva_valor").HasColumnType("numeric(12,2)").IsRequired();
 
-        builder.HasIndex(d => d.FacturaId);
+        builder.HasIndex("FacturaId");
     }
 }

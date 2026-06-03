@@ -19,9 +19,8 @@ public class ServicioPdf : IServicioPdf
 
     public Task<ErrorOr<byte[]>> GenerarRideFacturaAsync(
         Factura factura, Empresa empresa, ParametrosFacturacion? parametros,
-        byte[]? logoBytes, CancellationToken ct = default)
-    {
-        var bytes = Document.Create(doc => doc.Page(page =>
+        byte[]? logoBytes, CancellationToken ct = default) =>
+        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -51,18 +50,14 @@ public class ServicioPdf : IServicioPdf
                 if (factura.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, factura.InfoAdicional));
             });
-        })).GeneratePdf();
-
-        return Task.FromResult<ErrorOr<byte[]>>(bytes);
-    }
+        })).GeneratePdf(), ct);
 
     // ── Nota de Crédito ───────────────────────────────────────────────────────
 
     public Task<ErrorOr<byte[]>> GenerarRideNotaCreditoAsync(
         NotaCredito nc, Empresa empresa, ParametrosFacturacion? parametros,
-        byte[]? logoBytes, CancellationToken ct = default)
-    {
-        var bytes = Document.Create(doc => doc.Page(page =>
+        byte[]? logoBytes, CancellationToken ct = default) =>
+        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -91,18 +86,14 @@ public class ServicioPdf : IServicioPdf
                 if (nc.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, nc.InfoAdicional));
             });
-        })).GeneratePdf();
-
-        return Task.FromResult<ErrorOr<byte[]>>(bytes);
-    }
+        })).GeneratePdf(), ct);
 
     // ── Retención ─────────────────────────────────────────────────────────────
 
     public Task<ErrorOr<byte[]>> GenerarRideRetencionAsync(
         Retencion retencion, Empresa empresa, ParametrosFacturacion? parametros,
-        byte[]? logoBytes, CancellationToken ct = default)
-    {
-        var bytes = Document.Create(doc => doc.Page(page =>
+        byte[]? logoBytes, CancellationToken ct = default) =>
+        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -130,10 +121,7 @@ public class ServicioPdf : IServicioPdf
                 if (retencion.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, retencion.InfoAdicional));
             });
-        })).GeneratePdf();
-
-        return Task.FromResult<ErrorOr<byte[]>>(bytes);
-    }
+        })).GeneratePdf(), ct);
 
     // ── Encabezado ────────────────────────────────────────────────────────────
 

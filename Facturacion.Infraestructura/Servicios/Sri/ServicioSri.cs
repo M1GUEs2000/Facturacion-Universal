@@ -28,7 +28,7 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
         string xmlFirmado, Ambiente ambiente, CancellationToken ct = default)
     {
         var base64Xml = Convert.ToBase64String(Encoding.UTF8.GetBytes(xmlFirmado));
-        var endpoint = ambiente == Ambiente.Pruebas ? RecepcionPruebas : RecepcionProduccion;
+        var endpoint = EndpointRecepcion(ambiente);
         var soap = BuildSoapRecepcion(base64Xml);
 
         string responseText;
@@ -40,6 +40,10 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
         {
             logger.LogError(ex, "Error HTTP enviando documento al SRI ({Endpoint})", endpoint);
             return Errores.Sri.ErrorComunicacion;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -78,7 +82,7 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
     public async Task<ErrorOr<RespuestaAutorizacionSri>> ConsultarAutorizacionAsync(
         string claveAcceso, Ambiente ambiente, CancellationToken ct = default)
     {
-        var endpoint = ambiente == Ambiente.Pruebas ? AutorizacionPruebas : AutorizacionProduccion;
+        var endpoint = EndpointAutorizacion(ambiente);
         var soap = BuildSoapAutorizacion(claveAcceso);
 
         ErrorOr<RespuestaAutorizacionSri> ultimaRespuesta = Errores.Sri.SinRespuesta;
@@ -94,6 +98,10 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
             {
                 logger.LogError(ex, "Error HTTP consultando autorizacion SRI ({Endpoint})", endpoint);
                 return Errores.Sri.ErrorComunicacion;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -200,7 +208,7 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
             <soapenv:Header/>
             <soapenv:Body>
                 <ec:autorizacionComprobante>
-                    <claveAccesoComprobante>{claveAcceso}</claveAccesoComprobante>
+                    <claveAccesoComprobante>{System.Security.SecurityElement.Escape(claveAcceso)}</claveAccesoComprobante>
                 </ec:autorizacionComprobante>
             </soapenv:Body>
         </soapenv:Envelope>
@@ -219,32 +227,25 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    // Port de CSriws.ExtraerMensajesSri — extrae mensajes estructurados del SRI
-    // de cualquier parte del SOAP (recepción o autorización).
-    private static List<MensajeSri> ExtraerMensajesSri(XDocument doc)
-    {
-        var resultado = new List<MensajeSri>();
+    // Extrae mensajes estructurados del SRI de cualquier parte del SOAP.
+    private static List<MensajeSri> ExtraerMensajesSri(XDocument doc) =>
+        doc.Descendants("mensaje")
+           .Where(n => n.Element("identificador") != null
+                    || n.Element("mensaje") != null
+                    || n.Element("informacionAdicional") != null
+                    || n.Element("tipo") != null)
+           .Select(n => new MensajeSri(
+               n.Element("identificador")?.Value ?? "",
+               n.Element("mensaje")?.Value ?? "",
+               n.Element("informacionAdicional")?.Value ?? "",
+               n.Element("tipo")?.Value ?? ""))
+           .ToList();
 
-        foreach (var nodo in doc.Descendants("mensaje"))
-        {
-            // Solo procesar nodos que tengan al menos un campo SRI estructurado
-            bool esMensajeSri =
-                nodo.Element("identificador") != null ||
-                nodo.Element("mensaje") != null ||
-                nodo.Element("informacionAdicional") != null ||
-                nodo.Element("tipo") != null;
+    private static string EndpointRecepcion(Ambiente a) =>
+        a == Ambiente.Pruebas ? RecepcionPruebas : RecepcionProduccion;
 
-            if (!esMensajeSri) continue;
-
-            resultado.Add(new MensajeSri(
-                nodo.Element("identificador")?.Value ?? "",
-                nodo.Element("mensaje")?.Value ?? "",
-                nodo.Element("informacionAdicional")?.Value ?? "",
-                nodo.Element("tipo")?.Value ?? ""));
-        }
-
-        return resultado;
-    }
+    private static string EndpointAutorizacion(Ambiente a) =>
+        a == Ambiente.Pruebas ? AutorizacionPruebas : AutorizacionProduccion;
 
     private static string? FormatearMensajes(List<MensajeSri> mensajes)
     {
