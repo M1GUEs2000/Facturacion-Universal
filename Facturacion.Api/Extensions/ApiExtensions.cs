@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Facturacion.Api.Endpoints.Cuentas;
 using Facturacion.Api.Endpoints.Empresas;
 using Facturacion.Api.Endpoints.Facturas;
 using Facturacion.Api.Endpoints.NotasCredito;
@@ -6,6 +7,7 @@ using Facturacion.Api.Endpoints.Parametros;
 using Facturacion.Api.Endpoints.Retenciones;
 using Facturacion.Api.Middleware;
 using Facturacion.Core.CasosDeUso.Comun;
+using Facturacion.Core.CasosDeUso.Cuentas;
 using Facturacion.Core.CasosDeUso.Empresas;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.CasosDeUso.NotasCredito;
@@ -47,6 +49,18 @@ public static class ApiExtensions
                     {
                         Window = TimeSpan.FromMinutes(1),
                         PermitLimit = 60,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
+            options.AddPolicy("escritura", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: ctx.User.FindFirst("sub")?.Value
+                        ?? ctx.Connection.RemoteIpAddress?.ToString()
+                        ?? "anon",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 20,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                         QueueLimit = 0
                     }));
@@ -99,6 +113,7 @@ public static class ApiExtensions
         services.AddScoped<ActualizarCertificado>();
         services.AddScoped<GuardarSecuencialSri>();
         services.AddScoped<GuardarParametrosFacturacion>();
+        services.AddScoped<EliminarCuenta>();
 
         return services;
     }
@@ -111,6 +126,7 @@ public static class ApiExtensions
 
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
+        app.MapCuentasEndpoints();
         app.MapEmpresasEndpoints();
         app.MapFacturasEndpoints();
         app.MapNotasCreditoEndpoints();

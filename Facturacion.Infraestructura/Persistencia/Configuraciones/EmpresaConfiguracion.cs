@@ -26,8 +26,9 @@ public class EmpresaConfiguracion : IEntityTypeConfiguration<Empresa>
             .HasConversion(
                 v => CertPasswordEncryption.Encrypt(v),
                 v => CertPasswordEncryption.Decrypt(v));
-        builder.Property(e => e.CuentaId).HasColumnName("cuenta_id").IsRequired();
-        builder.HasOne(e => e.Cuenta).WithMany().HasForeignKey(e => e.CuentaId);
+        builder.Property(e => e.CuentaId).HasColumnName("cuenta_id");
+        builder.HasOne(e => e.Cuenta).WithMany().HasForeignKey(e => e.CuentaId)
+            .OnDelete(DeleteBehavior.SetNull);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
     }

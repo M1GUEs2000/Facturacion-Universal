@@ -1,0 +1,29 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * 1'
+
+jobs:
+  vulnerable-packages:
+    name: Check Vulnerable NuGet Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore (locked mode)
+        run: dotnet restore --locked-mode
+
+      - name: Check vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive

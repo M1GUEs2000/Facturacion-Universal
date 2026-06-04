@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using Facturacion.Api.Extensions;
 using Facturacion.Infraestructura;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -23,12 +24,25 @@ try
         .AddInfraestructura(builder.Configuration)
         .AddApi(builder.Configuration);
 
+    builder.Services.AddHsts(options =>
+    {
+        options.MaxAge = TimeSpan.FromDays(365);
+        options.IncludeSubDomains = true;
+    });
+
     var app = builder.Build();
 
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    // Solo habilitar si la app está detrás de un reverse proxy conocido.
+    // Configurar ForwardedHeaders:KnownProxyIp en secrets/env para activar.
+    var proxyIp = app.Configuration["ForwardedHeaders:KnownProxyIp"];
+    if (!string.IsNullOrWhiteSpace(proxyIp) && IPAddress.TryParse(proxyIp, out var proxyAddress))
     {
-        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-    });
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+            KnownProxies = { proxyAddress }
+        });
+    }
 
     app.UseExceptionHandler();
     app.UseRateLimiter();

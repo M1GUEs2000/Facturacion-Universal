@@ -76,7 +76,7 @@ public class RegistrarEmpresaValidator : AbstractValidator<RegistrarEmpresaReque
         RuleFor(x => x.LogoContentType)
             .Must(EmpresaRequestValidation.EsLogoContentTypeValido)
             .When(x => !string.IsNullOrWhiteSpace(x.LogoBase64))
-            .WithMessage("LogoContentType debe ser image/png, image/jpeg, image/webp o image/svg+xml.");
+            .WithMessage("LogoContentType debe ser image/png, image/jpeg o image/webp.");
     }
 }
 
@@ -94,7 +94,7 @@ public class GuardarEmpresaValidator : AbstractValidator<GuardarEmpresaRequest>
         RuleFor(x => x.LogoContentType)
             .Must(EmpresaRequestValidation.EsLogoContentTypeValido)
             .When(x => !string.IsNullOrWhiteSpace(x.LogoBase64))
-            .WithMessage("LogoContentType debe ser image/png, image/jpeg, image/webp o image/svg+xml.");
+            .WithMessage("LogoContentType debe ser image/png, image/jpeg o image/webp.");
     }
 }
 
@@ -119,7 +119,7 @@ public class ActualizarEmpresaValidator : AbstractValidator<ActualizarEmpresaReq
         RuleFor(x => x.LogoContentType)
             .Must(EmpresaRequestValidation.EsLogoContentTypeValido)
             .When(x => !string.IsNullOrWhiteSpace(x.LogoBase64))
-            .WithMessage("LogoContentType debe ser image/png, image/jpeg, image/webp o image/svg+xml.");
+            .WithMessage("LogoContentType debe ser image/png, image/jpeg o image/webp.");
     }
 }
 
@@ -131,8 +131,7 @@ internal static class EmpresaRequestValidation
     {
         "image/png",
         "image/jpeg",
-        "image/webp",
-        "image/svg+xml"
+        "image/webp"
     };
 
     internal static bool EsLogoContentTypeValido(string? contentType) =>

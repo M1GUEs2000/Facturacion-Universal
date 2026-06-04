@@ -126,4 +126,13 @@ public static class Errores
             Error.NotFound("Secuencial.NoConfigurado",
                 $"No existe secuencial configurado para RUC {ruc} / tipo {tipo}.");
     }
+
+    public static class Cuenta
+    {
+        public static readonly Error NoEncontrada =
+            Error.NotFound("Cuenta.NoEncontrada", "La cuenta no existe.");
+
+        public static readonly Error Prohibido =
+            Error.Forbidden("Cuenta.Prohibido", "No tiene acceso a esta cuenta.");
+    }
 }

@@ -4,7 +4,7 @@ namespace Facturacion.Core.Interfaces.Repositorios;
 
 public interface IEmpresasRepositorio
 {
-    Task<List<Empresa>> ListarAsync(CancellationToken ct = default);
+    Task<List<Empresa>> ListarPorCuentaAsync(Guid cuentaId, int pagina = 1, int tamanoPagina = 50, CancellationToken ct = default);
     Task<Empresa?> ObtenerPorRucAsync(string ruc, CancellationToken ct = default);
     Task<bool> ExisteAsync(string ruc, CancellationToken ct = default);
     Task AgregarAsync(Empresa empresa, CancellationToken ct = default);

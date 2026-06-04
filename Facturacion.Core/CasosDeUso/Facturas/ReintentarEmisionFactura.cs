@@ -21,12 +21,12 @@ public class ReintentarEmisionFactura(
         var factura = await facturas.ObtenerPorIdAsync(facturaId, ct);
         if (factura is null) return Errores.Factura.NoEncontrada;
 
-        if (factura.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
-            return Errores.Factura.EstadoInvalido;
-
         var empresa = await empresas.ObtenerPorRucAsync(factura.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
         if (empresa.CuentaId != cuentaId) return Errores.Empresa.Prohibido;
+
+        if (factura.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
+            return Errores.Factura.EstadoInvalido;
 
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;

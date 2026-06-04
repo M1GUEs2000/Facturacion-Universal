@@ -21,12 +21,12 @@ public class ReintentarEmisionRetencion(
         var retencion = await retenciones.ObtenerPorIdAsync(retencionId, ct);
         if (retencion is null) return Errores.Retencion.NoEncontrada;
 
-        if (retencion.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
-            return Errores.Retencion.EstadoInvalido;
-
         var empresa = await empresas.ObtenerPorRucAsync(retencion.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
         if (empresa.CuentaId != cuentaId) return Errores.Empresa.Prohibido;
+
+        if (retencion.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
+            return Errores.Retencion.EstadoInvalido;
 
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
