@@ -4,6 +4,7 @@ using Facturacion.Core.CasosDeUso.Parametros;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Api.Endpoints.Parametros;
 
@@ -13,7 +14,8 @@ public static class ParametrosEndpoints
     {
         var group = app.MapGroup("/parametros")
             .WithTags("Parametros")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("escritura");
 
         group.MapGet("/{empresaRuc}/sri", ListarSri).WithName("ListarSecuencialesSri");
         group.MapPut("/{empresaRuc}/sri/{tipoComprobante}", GuardarSri).WithName("GuardarSecuencialSri");
@@ -27,6 +29,7 @@ public static class ParametrosEndpoints
         string empresaRuc,
         [FromServices] ISecuencialesSriRepositorio parametros,
         [FromServices] IEmpresasRepositorio empresas,
+        [FromServices] ILoggerFactory loggers,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -35,7 +38,11 @@ public static class ParametrosEndpoints
 
         var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
         if (empresa is null || empresa.CuentaId != cuentaId)
+        {
+            if (empresa is not null)
+                loggers.CreateLogger("Facturacion.Endpoints.Parametros").LogWarning("Auth failure: cuenta {CuentaId} intentó acceder a parametros sri de empresa {Ruc}", cuentaId, empresaRuc);
             return Results.NotFound(new { error = "La empresa no existe." });
+        }
 
         var lista = await parametros.ListarPorEmpresaAsync(empresaRuc, ct);
         return Results.Ok(lista.Select(SecuencialSriResponse.From));
@@ -48,6 +55,7 @@ public static class ParametrosEndpoints
         [FromServices] GuardarSecuencialSri useCase,
         [FromServices] IEmpresasRepositorio empresas,
         [FromServices] IValidator<SecuencialSriRequest> validator,
+        [FromServices] ILoggerFactory loggers,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -56,7 +64,11 @@ public static class ParametrosEndpoints
 
         var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
         if (empresa is null || empresa.CuentaId != cuentaId)
+        {
+            if (empresa is not null)
+                loggers.CreateLogger("Facturacion.Endpoints.Parametros").LogWarning("Auth failure: cuenta {CuentaId} intentó modificar parametros sri de empresa {Ruc}", cuentaId, empresaRuc);
             return Results.NotFound(new { error = "La empresa no existe." });
+        }
 
         var request = req with { TipoComprobante = tipoComprobante };
         var validation = await validator.ValidateAsync(request, ct);
@@ -77,6 +89,7 @@ public static class ParametrosEndpoints
         string empresaRuc,
         [FromServices] IParametrosFacturacionRepositorio parametros,
         [FromServices] IEmpresasRepositorio empresas,
+        [FromServices] ILoggerFactory loggers,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -85,7 +98,11 @@ public static class ParametrosEndpoints
 
         var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
         if (empresa is null || empresa.CuentaId != cuentaId)
+        {
+            if (empresa is not null)
+                loggers.CreateLogger("Facturacion.Endpoints.Parametros").LogWarning("Auth failure: cuenta {CuentaId} intentó acceder a parametros facturacion de empresa {Ruc}", cuentaId, empresaRuc);
             return Results.NotFound(new { error = "La empresa no existe." });
+        }
 
         var config = await parametros.ObtenerPorEmpresaAsync(empresaRuc, ct);
         return config is null
@@ -99,6 +116,7 @@ public static class ParametrosEndpoints
         [FromServices] GuardarParametrosFacturacion useCase,
         [FromServices] IEmpresasRepositorio empresas,
         [FromServices] IValidator<ParametrosFacturacionRequest> validator,
+        [FromServices] ILoggerFactory loggers,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -107,7 +125,11 @@ public static class ParametrosEndpoints
 
         var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
         if (empresa is null || empresa.CuentaId != cuentaId)
+        {
+            if (empresa is not null)
+                loggers.CreateLogger("Facturacion.Endpoints.Parametros").LogWarning("Auth failure: cuenta {CuentaId} intentó modificar parametros facturacion de empresa {Ruc}", cuentaId, empresaRuc);
             return Results.NotFound(new { error = "La empresa no existe." });
+        }
 
         var validation = await validator.ValidateAsync(req, ct);
         if (!validation.IsValid)

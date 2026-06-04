@@ -21,9 +21,14 @@ public static class InfraestructuraExtensions
         this IServiceCollection services, IConfiguration configuration)
     {
         // Cifrado de CertPassword — clave de 32 bytes en base64 desde secrets manager
-        var certKeyBase64 = configuration["Encryption:CertPasswordKey"];
-        if (!string.IsNullOrWhiteSpace(certKeyBase64))
-            CertPasswordEncryption.Initialize(Convert.FromBase64String(certKeyBase64));
+        var certKeyBase64 = configuration["Encryption:CertPasswordKey"]
+            ?? throw new InvalidOperationException(
+                "Encryption:CertPasswordKey es requerida. Configurala via user-secrets o variables de entorno.");
+        var certKey = Convert.FromBase64String(certKeyBase64);
+        if (certKey.Length != 32)
+            throw new InvalidOperationException(
+                "Encryption:CertPasswordKey debe ser una clave AES-256 de 32 bytes en base64.");
+        CertPasswordEncryption.Initialize(certKey);
 
         // Persistencia
         services.AddDbContext<AppDbContext>(options =>

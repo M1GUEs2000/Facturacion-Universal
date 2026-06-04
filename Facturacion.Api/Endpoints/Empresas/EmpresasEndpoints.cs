@@ -13,7 +13,8 @@ public static class EmpresasEndpoints
     {
         var group = app.MapGroup("/empresas")
             .WithTags("Empresas")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("escritura");
 
         group.MapGet("", Listar).WithName("ListarEmpresas");
         group.MapGet("/{ruc}", ObtenerPorRuc).WithName("ObtenerEmpresaPorRuc");
@@ -28,18 +29,24 @@ public static class EmpresasEndpoints
     private static async Task<IResult> Listar(
         [FromServices] IEmpresasRepositorio empresas,
         HttpContext ctx,
-        CancellationToken ct)
+        CancellationToken ct,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanoPagina = 50)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
             return Results.Unauthorized();
 
-        var lista = await empresas.ListarAsync(ct);
-        return Results.Ok(lista.Where(e => e.CuentaId == cuentaId).Select(EmpresaResponse.From));
+        if (pagina < 1) pagina = 1;
+        if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
+
+        var lista = await empresas.ListarPorCuentaAsync(cuentaId, pagina, tamanoPagina, ct);
+        return Results.Ok(lista.Select(EmpresaResponse.From));
     }
 
     private static async Task<IResult> ObtenerPorRuc(
         string ruc,
         [FromServices] IEmpresasRepositorio empresas,
+        [FromServices] ILoggerFactory loggers,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -48,7 +55,12 @@ public static class EmpresasEndpoints
 
         var empresa = await empresas.ObtenerPorRucAsync(ruc, ct);
         if (empresa is null || empresa.CuentaId != cuentaId)
+        {
+            if (empresa is not null)
+                loggers.CreateLogger("Facturacion.Endpoints.Empresas")
+                    .LogWarning("Auth failure: cuenta {CuentaId} intentó acceder a empresa {Ruc}", cuentaId, ruc);
             return Results.NotFound(new { error = "La empresa no existe." });
+        }
 
         return Results.Ok(EmpresaResponse.From(empresa));
     }

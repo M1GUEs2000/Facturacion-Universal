@@ -7,8 +7,14 @@ namespace Facturacion.Infraestructura.Persistencia.Repositorios;
 
 public class EmpresasRepositorio(AppDbContext context) : IEmpresasRepositorio
 {
-    public async Task<List<Empresa>> ListarAsync(CancellationToken ct = default)
-        => await context.Empresas.Include(e => e.Cuenta).OrderBy(e => e.Ruc).ToListAsync(ct);
+    public async Task<List<Empresa>> ListarPorCuentaAsync(Guid cuentaId, int pagina = 1, int tamanoPagina = 50, CancellationToken ct = default)
+        => await context.Empresas
+            .Where(e => e.CuentaId == cuentaId)
+            .Include(e => e.Cuenta)
+            .OrderBy(e => e.Ruc)
+            .Skip((pagina - 1) * tamanoPagina)
+            .Take(tamanoPagina)
+            .ToListAsync(ct);
 
     public async Task<Empresa?> ObtenerPorRucAsync(string ruc, CancellationToken ct = default)
         => await context.Empresas.Include(e => e.Cuenta).FirstOrDefaultAsync(e => e.Ruc == ruc, ct);

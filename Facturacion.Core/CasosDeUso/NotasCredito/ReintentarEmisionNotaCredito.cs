@@ -21,12 +21,12 @@ public class ReintentarEmisionNotaCredito(
         var nota = await notasCredito.ObtenerPorIdAsync(notaId, ct);
         if (nota is null) return Errores.NotaCredito.NoEncontrada;
 
-        if (nota.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
-            return Errores.NotaCredito.EstadoInvalido;
-
         var empresa = await empresas.ObtenerPorRucAsync(nota.EmpresaRuc, ct);
         if (empresa is null) return Errores.Empresa.NoEncontrada;
         if (empresa.CuentaId != cuentaId) return Errores.Empresa.Prohibido;
+
+        if (nota.EstadoSri is Enums.EstadoSri.Autorizado or Enums.EstadoSri.NoAutorizado or Enums.EstadoSri.Anulado)
+            return Errores.NotaCredito.EstadoInvalido;
 
         var certResult = await storageFirma.ObtenerAsync(empresa.CertificadoPath, ct);
         if (certResult.IsError) return certResult.Errors;
