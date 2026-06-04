@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Facturacion.Api\Facturacion.Api.csproj" />
     <ProjectReference Include="..\Facturacion.Core\Facturacion.Core.csproj" />
     <ProjectReference Include="..\Facturacion.Infraestructura\Facturacion.Infraestructura.csproj" />
   </ItemGroup>
