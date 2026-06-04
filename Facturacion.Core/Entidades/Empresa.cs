@@ -12,7 +12,7 @@ public class Empresa
     public string? LogoContentType { get; private set; }
     public string CertificadoPath { get; private set; } = null!;
     public string CertPassword { get; private set; } = null!;
-    public Guid CuentaId { get; private set; }
+    public Guid? CuentaId { get; private set; }
     public Cuenta? Cuenta { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -72,6 +72,17 @@ public class Empresa
     {
         LogoPath = logoPath;
         LogoContentType = contentType;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Anonimizar()
+    {
+        DirMatriz = "CUENTA ELIMINADA";
+        NombreComercial = null;
+        CertificadoPath = "ELIMINADO";
+        CertPassword = "ELIMINADO";
+        LogoPath = null;
+        LogoContentType = null;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

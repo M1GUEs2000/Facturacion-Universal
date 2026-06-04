@@ -37,7 +37,7 @@ public class SecuencialesSriRepositorio(AppDbContext context) : ISecuencialesSri
         // obtienen números distintos sin necesidad de locks en la aplicación.
         var result = await context.Database.SqlQueryRaw<long>(
             """
-            UPDATE secuenciales_sri
+            UPDATE facturacion.secuenciales_sri
             SET secuencial           = secuencial + 1,
                 fecha_actualizacion  = NOW(),
                 updated_at           = NOW()
