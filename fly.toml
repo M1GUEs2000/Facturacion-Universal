@@ -1,7 +1,10 @@
 app = "facturacion-universal"
 primary_region = "gru"
+kill_signal = "SIGTERM"
+kill_timeout = 30
 
 [build]
+  dockerfile = "Dockerfile"
 
 [http_service]
   internal_port = 8080
@@ -18,19 +21,7 @@ primary_region = "gru"
     protocol = "http"
     timeout = "5s"
 
-[processes]
-  app = "dotnet Facturacion.Api.dll"
-
 [[vm]]
   memory = "512mb"
   cpu_kind = "shared"
   cpus = 1
-
-[deploy]
-  release_command = ""
-
-[kill_signal]
-  signal = "SIGTERM"
-
-[kill_timeout]
-  timeout = 30
