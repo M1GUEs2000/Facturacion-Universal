@@ -72,6 +72,7 @@ try
     if (app.Environment.IsDevelopment())
         app.UseSwaggerDocs();
 
+    app.MapHealthChecks("/health");
     app.MapApiEndpoints();
 
     app.Run();

@@ -92,6 +92,9 @@ public static class ApiExtensions
                 Example = new Microsoft.OpenApi.Any.OpenApiString("2025-01-31")
             });
         });
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("database");
+
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
