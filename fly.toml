@@ -1,4 +1,4 @@
-app = "[NOMBRE-APP]"
+app = "facturacion-universal"
 primary_region = "gru"
 
 [build]
