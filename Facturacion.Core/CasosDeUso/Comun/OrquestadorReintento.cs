@@ -4,6 +4,7 @@ using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Core.CasosDeUso.Comun;
 
@@ -19,7 +20,9 @@ public record ParametrosReintento<TDoc>(
     Func<TDoc, CancellationToken, Task> Persistir)
     where TDoc : IDocumentoEmitible;
 
-public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServicioStorage storage)
+public class OrquestadorReintento(
+    IServicioFirma firma, IServicioSri sri, IServicioStorage storage,
+    ILogger<OrquestadorReintento> logger)
 {
     public async Task<ErrorOr<TDoc>> EjecutarAsync<TDoc>(
         ParametrosReintento<TDoc> p, CancellationToken ct = default)
@@ -78,7 +81,13 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
             if (!auth.Autorizado)
             {
                 if (doc.XmlFirmadoPath is not null)
-                    await storage.EliminarAsync(doc.XmlFirmadoPath, ct);
+                {
+                    var borrarResult = await storage.EliminarAsync(doc.XmlFirmadoPath, ct);
+                    if (borrarResult.IsError)
+                        logger.LogWarning(
+                            "No se pudo eliminar XML firmado {Path} tras rechazo SRI de {ClaveAcceso}: {Error}",
+                            doc.XmlFirmadoPath, p.ClaveAcceso, borrarResult.FirstError.Description);
+                }
                 doc.RegistrarNoAutorizacion(auth.MensajeSri);
                 await p.Persistir(doc, ct);
                 return Errores.Sri.NoAutorizado(auth.MensajeSri);
@@ -94,7 +103,13 @@ public class OrquestadorReintento(IServicioFirma firma, IServicioSri sri, IServi
 
             // Borra el XML firmado si todavía existe.
             if (doc.XmlFirmadoPath is not null)
-                await storage.EliminarAsync(doc.XmlFirmadoPath, ct);
+            {
+                var borrarResult = await storage.EliminarAsync(doc.XmlFirmadoPath, ct);
+                if (borrarResult.IsError)
+                    logger.LogWarning(
+                        "No se pudo eliminar XML firmado {Path} tras autorización de {ClaveAcceso}: {Error}",
+                        doc.XmlFirmadoPath, p.ClaveAcceso, borrarResult.FirstError.Description);
+            }
 
             doc.RegistrarAutorizacionSri(
                 auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value,
