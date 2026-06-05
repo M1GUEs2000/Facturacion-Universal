@@ -7,7 +7,7 @@ namespace Facturacion.Api.Endpoints.Cuentas;
 
 public static class CuentasEndpoints
 {
-    public static WebApplication MapCuentasEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapCuentasEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/cuenta")
             .WithTags("Cuenta")

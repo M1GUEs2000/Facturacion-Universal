@@ -12,7 +12,7 @@ namespace Facturacion.Api.Endpoints.Empresas;
 
 public static class EmpresasEndpoints
 {
-    public static WebApplication MapEmpresasEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapEmpresasEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/empresas")
             .WithTags("Empresas")
@@ -139,7 +139,7 @@ public static class EmpresasEndpoints
             Exito: !result.IsError,
             CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
-            empresa => Results.Created($"/empresas/{empresa.Ruc}", EmpresaResponse.From(empresa)),
+            empresa => Results.Created($"/v1/empresas/{empresa.Ruc}", EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());
     }
 

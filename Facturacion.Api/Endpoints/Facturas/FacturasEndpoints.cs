@@ -12,7 +12,7 @@ namespace Facturacion.Api.Endpoints.Facturas;
 
 public static class FacturasEndpoints
 {
-    public static WebApplication MapFacturasEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapFacturasEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/facturas")
             .WithTags("Facturas")

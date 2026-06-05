@@ -12,7 +12,7 @@ namespace Facturacion.Api.Endpoints.Retenciones;
 
 public static class RetencionesEndpoints
 {
-    public static WebApplication MapRetencionesEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapRetencionesEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/retenciones")
             .WithTags("Retenciones")

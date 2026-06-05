@@ -156,12 +156,13 @@ public static class ApiExtensions
 
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        app.MapCuentasEndpoints();
-        app.MapEmpresasEndpoints();
-        app.MapFacturasEndpoints();
-        app.MapNotasCreditoEndpoints();
-        app.MapRetencionesEndpoints();
-        app.MapParametrosEndpoints();
+        var v1 = app.MapGroup("/v1");
+        v1.MapCuentasEndpoints();
+        v1.MapEmpresasEndpoints();
+        v1.MapFacturasEndpoints();
+        v1.MapNotasCreditoEndpoints();
+        v1.MapRetencionesEndpoints();
+        v1.MapParametrosEndpoints();
         return app;
     }
 

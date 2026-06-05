@@ -12,7 +12,7 @@ namespace Facturacion.Api.Endpoints.NotasCredito;
 
 public static class NotasCreditoEndpoints
 {
-    public static WebApplication MapNotasCreditoEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapNotasCreditoEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/notas-credito")
             .WithTags("Notas de Crédito")
