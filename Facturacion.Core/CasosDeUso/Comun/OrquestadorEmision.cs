@@ -4,6 +4,7 @@ using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Core.CasosDeUso.Comun;
 
@@ -20,7 +21,9 @@ public record ParametrosEmision<TDoc>(
     Func<CancellationToken, Task>? IncrementarSecuencial = null)
     where TDoc : IDocumentoEmitible;
 
-public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServicioStorage storage)
+public class OrquestadorEmision(
+    IServicioFirma firma, IServicioSri sri, IServicioStorage storage,
+    ILogger<OrquestadorEmision> logger)
 {
     public async Task<ErrorOr<TDoc>> EjecutarAsync<TDoc>(
         ParametrosEmision<TDoc> p, CancellationToken ct = default)
@@ -73,7 +76,11 @@ public class OrquestadorEmision(IServicioFirma firma, IServicioSri sri, IServici
         var storageXmlAutResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(auth.XmlAutorizado!), xmlAutPath, ct);
         if (storageXmlAutResult.IsError) return storageXmlAutResult.Errors;
 
-        await storage.EliminarAsync(xmlFirmadoPath, ct);
+        var borrarResult = await storage.EliminarAsync(xmlFirmadoPath, ct);
+        if (borrarResult.IsError)
+            logger.LogWarning(
+                "No se pudo eliminar XML firmado {Path} tras autorización de {ClaveAcceso}: {Error}",
+                xmlFirmadoPath, p.ClaveAcceso, borrarResult.FirstError.Description);
 
         p.Documento.RegistrarAutorizacionSri(
             auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value,

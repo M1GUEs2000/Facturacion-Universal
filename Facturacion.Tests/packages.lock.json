@@ -1566,7 +1566,8 @@
       "facturacion.core": {
         "type": "Project",
         "dependencies": {
-          "ErrorOr": "[2.0.1, )"
+          "ErrorOr": "[2.0.1, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[8.0.3, )"
         }
       },
       "facturacion.infraestructura": {

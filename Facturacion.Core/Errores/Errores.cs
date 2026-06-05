@@ -120,6 +120,12 @@ public static class Errores
             Error.Failure("Xml.ErrorSerializacion", "No se pudo serializar el documento XML.");
     }
 
+    public static class Pdf
+    {
+        public static readonly Error ErrorGeneracion =
+            Error.Failure("Pdf.ErrorGeneracion", "No se pudo generar el PDF del documento.");
+    }
+
     public static class Secuencial
     {
         public static Error NoConfigurado(string ruc, string tipo) =>
