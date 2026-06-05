@@ -138,8 +138,6 @@ public static class ApiExtensions
         services.AddScoped<ReintentarEmisionNotaCredito>();
         services.AddScoped<ReintentarEmisionRetencion>();
         services.AddScoped<GuardarEmpresa>();
-        services.AddScoped<RegistrarEmpresa>();
-        services.AddScoped<ActualizarEmpresa>();
         services.AddScoped<ActualizarCertificado>();
         services.AddScoped<GuardarSecuencialSri>();
         services.AddScoped<GuardarParametrosFacturacion>();

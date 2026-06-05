@@ -79,10 +79,11 @@ public static class InfraestructuraExtensions
             docsOpts,
             sp.GetRequiredService<ILogger<ServicioStorageSupabase>>()));
 
-        services.AddScoped<IServicioStorageFirmaYLogo>(sp => new ServicioStorageSupabase(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            firmaOptsAdaptado,
-            sp.GetRequiredService<ILogger<ServicioStorageSupabase>>()));
+        services.AddScoped<IServicioStorageFirmaYLogo>(sp => new CifradoCertificadoStorageDecorator(
+            new ServicioStorageSupabase(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                firmaOptsAdaptado,
+                sp.GetRequiredService<ILogger<ServicioStorageSupabase>>())));
 
         return services;
     }
