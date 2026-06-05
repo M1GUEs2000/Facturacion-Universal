@@ -32,12 +32,24 @@ public class NotasCreditoRepositorio(AppDbContext context) : INotasCreditoReposi
             n.EstadoSri != EstadoSri.Pendiente &&
             n.EstadoSri != EstadoSri.NoAutorizado, ct);
 
-    public async Task<IReadOnlyList<NotaCredito>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<NotaCredito>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, int pagina = 1, int tamanoPagina = 50, CancellationToken ct = default)
     {
         var query = context.NotasCredito.Where(n => n.EmpresaRuc == empresaRuc);
         if (estado.HasValue)
             query = query.Where(n => n.EstadoSri == estado.Value);
-        return await query.OrderByDescending(n => n.FechaEmision).ToListAsync(ct);
+        return await query
+            .OrderByDescending(n => n.FechaEmision)
+            .Skip((pagina - 1) * tamanoPagina)
+            .Take(tamanoPagina)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> ContarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
+    {
+        var query = context.NotasCredito.Where(n => n.EmpresaRuc == empresaRuc);
+        if (estado.HasValue)
+            query = query.Where(n => n.EstadoSri == estado.Value);
+        return await query.CountAsync(ct);
     }
 
     public async Task AgregarAsync(NotaCredito notaCredito, CancellationToken ct = default)

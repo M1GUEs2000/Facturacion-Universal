@@ -1,8 +1,10 @@
+using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.Facturas;
 using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
@@ -19,6 +21,7 @@ public static class FacturasEndpoints
             .RequireAuthorization()
             .RequireRateLimiting("emision");
 
+        group.MapGet("", Listar).WithName("ListarFacturas");
         group.MapPost("/", Emitir).WithName("EmitirFactura");
         group.MapPost("/preview", Preview).WithName("PreviewFactura");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarFactura");
@@ -26,6 +29,36 @@ public static class FacturasEndpoints
         group.MapGet("/{id:guid}/xml", ObtenerXml).WithName("DescargarXmlFactura");
 
         return app;
+    }
+
+    private static async Task<IResult> Listar(
+        [FromServices] IFacturasRepositorio facturas,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
+        CancellationToken ct,
+        [FromQuery] string empresaRuc = "",
+        [FromQuery] EstadoSri? estado = null,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanoPagina = 50)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(empresaRuc))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+                { ["empresaRuc"] = ["El parámetro empresaRuc es requerido."] });
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound();
+
+        if (pagina < 1) pagina = 1;
+        if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
+
+        var lista = await facturas.ListarPorEmpresaAsync(empresaRuc, estado, pagina, tamanoPagina, ct);
+        var total = await facturas.ContarPorEmpresaAsync(empresaRuc, estado, ct);
+        var data = lista.Select(FacturaResponse.From).ToList();
+        return Results.Ok(new PaginaResponse<FacturaResponse>(data, total, pagina, tamanoPagina, pagina * tamanoPagina < total));
     }
 
     private static async Task<IResult> ObtenerPdf(

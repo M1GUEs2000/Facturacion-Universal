@@ -16,6 +16,9 @@ public class EmpresasRepositorio(AppDbContext context) : IEmpresasRepositorio
             .Take(tamanoPagina)
             .ToListAsync(ct);
 
+    public async Task<int> ContarPorCuentaAsync(Guid cuentaId, CancellationToken ct = default)
+        => await context.Empresas.CountAsync(e => e.CuentaId == cuentaId, ct);
+
     public async Task<Empresa?> ObtenerPorRucAsync(string ruc, CancellationToken ct = default)
         => await context.Empresas.Include(e => e.Cuenta).FirstOrDefaultAsync(e => e.Ruc == ruc, ct);
 

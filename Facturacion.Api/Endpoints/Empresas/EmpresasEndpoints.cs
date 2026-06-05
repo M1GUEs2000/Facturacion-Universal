@@ -1,4 +1,5 @@
 using ErrorOr;
+using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.Empresas;
 using Facturacion.Api.Extensions;
 using Facturacion.Core;
@@ -43,7 +44,10 @@ public static class EmpresasEndpoints
         if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
 
         var lista = await empresas.ListarPorCuentaAsync(cuentaId, pagina, tamanoPagina, ct);
-        return Results.Ok(lista.Select(EmpresaResponse.From));
+        var total = await empresas.ContarPorCuentaAsync(cuentaId, ct);
+
+        var data = lista.Select(EmpresaResponse.From).ToList();
+        return Results.Ok(new PaginaResponse<EmpresaResponse>(data, total, pagina, tamanoPagina, pagina * tamanoPagina < total));
     }
 
     private static async Task<IResult> ObtenerPorRuc(

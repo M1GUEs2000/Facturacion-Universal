@@ -32,12 +32,24 @@ public class FacturasRepositorio(AppDbContext context) : IFacturasRepositorio
             f.EstadoSri != EstadoSri.Pendiente &&
             f.EstadoSri != EstadoSri.NoAutorizado, ct);
 
-    public async Task<IReadOnlyList<Factura>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Factura>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, int pagina = 1, int tamanoPagina = 50, CancellationToken ct = default)
     {
         var query = context.Facturas.Where(f => f.EmpresaRuc == empresaRuc);
         if (estado.HasValue)
             query = query.Where(f => f.EstadoSri == estado.Value);
-        return await query.OrderByDescending(f => f.FechaEmision).ToListAsync(ct);
+        return await query
+            .OrderByDescending(f => f.FechaEmision)
+            .Skip((pagina - 1) * tamanoPagina)
+            .Take(tamanoPagina)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> ContarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
+    {
+        var query = context.Facturas.Where(f => f.EmpresaRuc == empresaRuc);
+        if (estado.HasValue)
+            query = query.Where(f => f.EstadoSri == estado.Value);
+        return await query.CountAsync(ct);
     }
 
     public async Task AgregarAsync(Factura factura, CancellationToken ct = default)
