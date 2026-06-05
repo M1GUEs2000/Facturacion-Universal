@@ -3,6 +3,7 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Retenciones;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -98,13 +99,23 @@ public static class RetencionesEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionRetencion useCase,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
             return Results.Unauthorized();
 
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
         var result = await useCase.EjecutarAsync(id, cuentaId, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.RetencionReintentada,
+            CuentaId: cuentaId,
+            Ruc: result.IsError ? null : result.Value.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             retencion => Results.Ok(RetencionResponse.From(retencion)),
             errors => errors.ToProblemResult());
@@ -114,6 +125,7 @@ public static class RetencionesEndpoints
         [FromBody] EmitirRetencionRequest req,
         [FromServices] EmitirRetencion useCase,
         [FromServices] IValidator<EmitirRetencionRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -144,6 +156,14 @@ public static class RetencionesEndpoints
             infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.RetencionEmitida,
+            CuentaId: cuentaId,
+            Ruc: req.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             retencion => Results.Created($"/retenciones/{retencion.Id}", RetencionResponse.From(retencion)),
             errors => errors.ToProblemResult());

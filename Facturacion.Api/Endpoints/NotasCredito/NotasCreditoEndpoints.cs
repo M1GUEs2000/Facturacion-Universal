@@ -3,6 +3,7 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.NotasCredito;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -102,13 +103,23 @@ public static class NotasCreditoEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionNotaCredito useCase,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
             return Results.Unauthorized();
 
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
         var result = await useCase.EjecutarAsync(id, cuentaId, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.NotaCreditoReintentada,
+            CuentaId: cuentaId,
+            Ruc: result.IsError ? null : result.Value.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             nota => Results.Ok(NotaCreditoResponse.From(nota)),
             errors => errors.ToProblemResult());
@@ -118,6 +129,7 @@ public static class NotasCreditoEndpoints
         [FromBody] EmitirNotaCreditoRequest req,
         [FromServices] EmitirNotaCredito useCase,
         [FromServices] IValidator<EmitirNotaCreditoRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -152,6 +164,14 @@ public static class NotasCreditoEndpoints
             infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.NotaCreditoEmitida,
+            CuentaId: cuentaId,
+            Ruc: req.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             nota => Results.Created($"/notas-credito/{nota.Id}", NotaCreditoResponse.From(nota)),
             errors => errors.ToProblemResult());

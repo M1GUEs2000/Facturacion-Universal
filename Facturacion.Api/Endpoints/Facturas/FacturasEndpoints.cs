@@ -3,6 +3,7 @@ using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -104,13 +105,23 @@ public static class FacturasEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionFactura useCase,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
             return Results.Unauthorized();
 
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
         var result = await useCase.EjecutarAsync(id, cuentaId, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.FacturaReintentada,
+            CuentaId: cuentaId,
+            Ruc: result.IsError ? null : result.Value.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             factura => Results.Ok(FacturaResponse.From(factura)),
             errors => errors.ToProblemResult());
@@ -120,6 +131,7 @@ public static class FacturasEndpoints
         [FromBody] EmitirFacturaRequest req,
         [FromServices] EmitirFactura useCase,
         [FromServices] IValidator<EmitirFacturaRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -156,6 +168,14 @@ public static class FacturasEndpoints
             req.GuiaRemision, formasPago, infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.FacturaEmitida,
+            CuentaId: cuentaId,
+            Ruc: req.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             factura => Results.Created($"/facturas/{factura.Id}", FacturaResponse.From(factura)),
             errors => errors.ToProblemResult());

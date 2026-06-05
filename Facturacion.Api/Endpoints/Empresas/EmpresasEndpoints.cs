@@ -1,6 +1,9 @@
+using ErrorOr;
 using Facturacion.Api.Contratos.Empresas;
 using Facturacion.Api.Extensions;
+using Facturacion.Core;
 using Facturacion.Core.CasosDeUso.Empresas;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -59,7 +62,7 @@ public static class EmpresasEndpoints
             if (empresa is not null)
                 loggers.CreateLogger("Facturacion.Endpoints.Empresas")
                     .LogWarning("Auth failure: cuenta {CuentaId} intentó acceder a empresa {Ruc}", cuentaId, ruc);
-            return Results.NotFound(new { error = "La empresa no existe." });
+            return new List<Error> { Errores.Empresa.NoEncontrada }.ToProblemResult();
         }
 
         return Results.Ok(EmpresaResponse.From(empresa));
@@ -103,6 +106,7 @@ public static class EmpresasEndpoints
         [FromBody] RegistrarEmpresaRequest req,
         [FromServices] RegistrarEmpresa useCase,
         [FromServices] IValidator<RegistrarEmpresaRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -127,6 +131,13 @@ public static class EmpresasEndpoints
             req.NombreComercial, logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.EmpresaRegistrada,
+            CuentaId: cuentaId,
+            Ruc: req.Ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             empresa => Results.Created($"/empresas/{empresa.Ruc}", EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());
@@ -137,6 +148,7 @@ public static class EmpresasEndpoints
         [FromBody] ActualizarEmpresaRequest req,
         [FromServices] ActualizarEmpresa useCase,
         [FromServices] IValidator<ActualizarEmpresaRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -165,6 +177,13 @@ public static class EmpresasEndpoints
             logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.EmpresaActualizada,
+            CuentaId: cuentaId,
+            Ruc: ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             empresa => Results.Ok(EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());
@@ -175,6 +194,7 @@ public static class EmpresasEndpoints
         [FromBody] ActualizarCertificadoRequest req,
         [FromServices] ActualizarCertificado useCase,
         [FromServices] IValidator<ActualizarCertificadoRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -191,6 +211,13 @@ public static class EmpresasEndpoints
 
         var cmd = new ComandoActualizarCertificado(ruc, certBytes, req.CertPassword, cuentaId);
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.CertificadoActualizado,
+            CuentaId: cuentaId,
+            Ruc: ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             empresa => Results.Ok(EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());

@@ -17,6 +17,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 namespace Facturacion.Api.Extensions;
 
@@ -33,8 +34,8 @@ public static class ApiExtensions
                 var origins = config.GetSection("Cors:Origins").Get<string[]>()
                     ?? ["http://localhost:5173", "http://127.0.0.1:5173"];
                 policy.WithOrigins(origins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
+                    .WithHeaders("Content-Type", "Authorization")
+                    .WithMethods("GET", "POST", "PUT");
             });
         });
 
@@ -65,6 +66,13 @@ public static class ApiExtensions
                         QueueLimit = 0
                     }));
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = (context, ct) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                    context.HttpContext.Response.Headers.RetryAfter =
+                        ((int)retryAfter.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return ValueTask.CompletedTask;
+            };
         });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -85,11 +93,30 @@ public static class ApiExtensions
         services.AddSwaggerGen(options =>
         {
             options.CustomSchemaIds(t => t.FullName);
-            options.MapType<DateOnly>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+            options.MapType<DateOnly>(() => new OpenApiSchema
             {
                 Type = "string",
                 Format = "date",
                 Example = new Microsoft.OpenApi.Any.OpenApiString("2025-01-31")
+            });
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Ingresa el token JWT de Supabase"
+            });
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                    },
+                    Array.Empty<string>()
+                }
             });
         });
         services.AddHealthChecks()
