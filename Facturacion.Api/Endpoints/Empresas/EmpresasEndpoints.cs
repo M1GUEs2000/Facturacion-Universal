@@ -1,6 +1,10 @@
+using ErrorOr;
+using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.Empresas;
 using Facturacion.Api.Extensions;
+using Facturacion.Core;
 using Facturacion.Core.CasosDeUso.Empresas;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +13,7 @@ namespace Facturacion.Api.Endpoints.Empresas;
 
 public static class EmpresasEndpoints
 {
-    public static WebApplication MapEmpresasEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapEmpresasEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/empresas")
             .WithTags("Empresas")
@@ -18,8 +22,6 @@ public static class EmpresasEndpoints
 
         group.MapGet("", Listar).WithName("ListarEmpresas");
         group.MapGet("/{ruc}", ObtenerPorRuc).WithName("ObtenerEmpresaPorRuc");
-        group.MapPost("/guardar", Guardar).WithName("GuardarEmpresa");
-        group.MapPost("", Registrar).WithName("RegistrarEmpresa");
         group.MapPut("/{ruc}", Actualizar).WithName("ActualizarEmpresa");
         group.MapPut("/{ruc}/certificado", ActualizarCertificado).WithName("ActualizarCertificado");
 
@@ -40,7 +42,10 @@ public static class EmpresasEndpoints
         if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
 
         var lista = await empresas.ListarPorCuentaAsync(cuentaId, pagina, tamanoPagina, ct);
-        return Results.Ok(lista.Select(EmpresaResponse.From));
+        var total = await empresas.ContarPorCuentaAsync(cuentaId, ct);
+
+        var data = lista.Select(EmpresaResponse.From).ToList();
+        return Results.Ok(new PaginaResponse<EmpresaResponse>(data, total, pagina, tamanoPagina, pagina * tamanoPagina < total));
     }
 
     private static async Task<IResult> ObtenerPorRuc(
@@ -59,16 +64,18 @@ public static class EmpresasEndpoints
             if (empresa is not null)
                 loggers.CreateLogger("Facturacion.Endpoints.Empresas")
                     .LogWarning("Auth failure: cuenta {CuentaId} intentó acceder a empresa {Ruc}", cuentaId, ruc);
-            return Results.NotFound(new { error = "La empresa no existe." });
+            return new List<Error> { Errores.Empresa.NoEncontrada }.ToProblemResult();
         }
 
         return Results.Ok(EmpresaResponse.From(empresa));
     }
 
-    private static async Task<IResult> Guardar(
-        [FromBody] GuardarEmpresaRequest req,
+    private static async Task<IResult> Actualizar(
+        string ruc,
+        [FromBody] ActualizarEmpresaRequest req,
         [FromServices] GuardarEmpresa useCase,
-        [FromServices] IValidator<GuardarEmpresaRequest> validator,
+        [FromServices] IValidator<ActualizarEmpresaRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -88,83 +95,18 @@ public static class EmpresasEndpoints
             return Results.BadRequest(new { error = logoResult.Error });
 
         var cmd = new ComandoGuardarEmpresa(
-            req.Ruc, req.Nombre, req.DirMatriz,
-            cuentaId,
+            ruc, req.Nombre, req.DirMatriz, cuentaId,
             req.NombreComercial, certResult.Bytes, req.CertPassword,
             logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
-        return result.Match(
-            empresa => Results.Ok(EmpresaResponse.From(empresa)),
-            errors => errors.ToProblemResult());
-    }
-
-    private static async Task<IResult> Registrar(
-        [FromBody] RegistrarEmpresaRequest req,
-        [FromServices] RegistrarEmpresa useCase,
-        [FromServices] IValidator<RegistrarEmpresaRequest> validator,
-        HttpContext ctx,
-        CancellationToken ct)
-    {
-        var validation = await validator.ValidateAsync(req, ct);
-        if (!validation.IsValid)
-            return Results.ValidationProblem(validation.ToDictionary());
-
-        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
-            return Results.Unauthorized();
-
-        byte[] certBytes;
-        try { certBytes = Convert.FromBase64String(req.CertificadoP12Base64); }
-        catch { return Results.BadRequest(new { error = "CertificadoP12Base64 no es Base64 valido." }); }
-
-        var logoResult = DecodificarLogo(req.LogoBase64);
-        if (logoResult.Error is not null)
-            return Results.BadRequest(new { error = logoResult.Error });
-
-        var cmd = new ComandoRegistrarEmpresa(
-            req.Ruc, req.Nombre, req.DirMatriz,
-            certBytes, req.CertPassword, cuentaId,
-            req.NombreComercial, logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
-
-        var result = await useCase.EjecutarAsync(cmd, ct);
-        return result.Match(
-            empresa => Results.Created($"/empresas/{empresa.Ruc}", EmpresaResponse.From(empresa)),
-            errors => errors.ToProblemResult());
-    }
-
-    private static async Task<IResult> Actualizar(
-        string ruc,
-        [FromBody] ActualizarEmpresaRequest req,
-        [FromServices] ActualizarEmpresa useCase,
-        [FromServices] IValidator<ActualizarEmpresaRequest> validator,
-        HttpContext ctx,
-        CancellationToken ct)
-    {
-        var validation = await validator.ValidateAsync(req, ct);
-        if (!validation.IsValid)
-            return Results.ValidationProblem(validation.ToDictionary());
-
-        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
-            return Results.Unauthorized();
-
-        byte[]? certBytes = null;
-        if (!string.IsNullOrWhiteSpace(req.CertificadoP12Base64))
-        {
-            try { certBytes = Convert.FromBase64String(req.CertificadoP12Base64); }
-            catch { return Results.BadRequest(new { error = "CertificadoP12Base64 no es Base64 valido." }); }
-        }
-
-        var logoResult = DecodificarLogo(req.LogoBase64);
-        if (logoResult.Error is not null)
-            return Results.BadRequest(new { error = logoResult.Error });
-
-        var cmd = new ComandoActualizarEmpresa(
-            ruc, req.Nombre, req.DirMatriz,
-            cuentaId,
-            req.NombreComercial, certBytes, req.CertPassword,
-            logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);
-
-        var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.EmpresaActualizada,
+            CuentaId: cuentaId,
+            Ruc: ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             empresa => Results.Ok(EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());
@@ -175,6 +117,7 @@ public static class EmpresasEndpoints
         [FromBody] ActualizarCertificadoRequest req,
         [FromServices] ActualizarCertificado useCase,
         [FromServices] IValidator<ActualizarCertificadoRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -191,6 +134,13 @@ public static class EmpresasEndpoints
 
         var cmd = new ComandoActualizarCertificado(ruc, certBytes, req.CertPassword, cuentaId);
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.CertificadoActualizado,
+            CuentaId: cuentaId,
+            Ruc: ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             empresa => Results.Ok(EmpresaResponse.From(empresa)),
             errors => errors.ToProblemResult());

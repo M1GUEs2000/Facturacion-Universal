@@ -1,0 +1,13 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/*.user
+**/*.log
+**/node_modules
+.dockerignore
+Dockerfile
+fly.toml
+RUNBOOK.md

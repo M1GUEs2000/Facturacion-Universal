@@ -1,0 +1,47 @@
+name: Run EF Core Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_target:
+        description: "Nombre de la migración destino (vacío = aplica todas)"
+        required: false
+        type: string
+
+jobs:
+  migrate:
+    name: Apply Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore packages
+        run: dotnet restore Facturacion.Api/Facturacion.Api.slnx --locked-mode
+
+      - name: Apply all migrations
+        if: ${{ inputs.migration_target == '' }}
+        run: >
+          dotnet ef database update
+          --project Facturacion.Infraestructura
+          --startup-project Facturacion.Api
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.DATABASE_URL }}
+
+      - name: Apply migration to target
+        if: ${{ inputs.migration_target != '' }}
+        run: >
+          dotnet ef database update ${{ inputs.migration_target }}
+          --project Facturacion.Infraestructura
+          --startup-project Facturacion.Api
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.DATABASE_URL }}

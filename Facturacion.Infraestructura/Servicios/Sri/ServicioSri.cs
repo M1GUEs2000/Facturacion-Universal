@@ -54,11 +54,16 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
         return ParsearRecepcion(responseText);
     }
 
-    private static ErrorOr<RespuestaRecepcionSri> ParsearRecepcion(string responseText)
+    private ErrorOr<RespuestaRecepcionSri> ParsearRecepcion(string responseText)
     {
         XDocument doc;
         try { doc = XDocument.Parse(responseText); }
-        catch (Exception) { return Errores.Sri.ErrorComunicacion; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Respuesta de recepción SRI no es XML válido. Snippet: {Snippet}",
+                responseText[..Math.Min(500, responseText.Length)]);
+            return Errores.Sri.ErrorComunicacion;
+        }
 
         var mensajes = ExtraerMensajesSri(doc);
 
@@ -129,11 +134,16 @@ public class ServicioSri(IHttpClientFactory httpClientFactory, ILogger<ServicioS
         return ultimaRespuesta;
     }
 
-    private static ErrorOr<RespuestaAutorizacionSri> ParsearAutorizacion(string responseText)
+    private ErrorOr<RespuestaAutorizacionSri> ParsearAutorizacion(string responseText)
     {
         XDocument doc;
         try { doc = XDocument.Parse(responseText); }
-        catch (Exception) { return Errores.Sri.ErrorComunicacion; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Respuesta de autorización SRI no es XML válido. Snippet: {Snippet}",
+                responseText[..Math.Min(500, responseText.Length)]);
+            return Errores.Sri.ErrorComunicacion;
+        }
 
         var mensajesGlobales = ExtraerMensajesSri(doc);
 

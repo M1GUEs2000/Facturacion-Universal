@@ -16,6 +16,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Host.UseSerilog((ctx, lc) => lc
+        .Destructure.With<SensitiveDataDestructuringPolicy>()
         .ReadFrom.Configuration(ctx.Configuration));
 
     builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 1_048_576);
@@ -71,6 +72,7 @@ try
     if (app.Environment.IsDevelopment())
         app.UseSwaggerDocs();
 
+    app.MapHealthChecks("/health");
     app.MapApiEndpoints();
 
     app.Run();

@@ -10,7 +10,7 @@ namespace Facturacion.Api.Endpoints.Parametros;
 
 public static class ParametrosEndpoints
 {
-    public static WebApplication MapParametrosEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapParametrosEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/parametros")
             .WithTags("Parametros")

@@ -1,18 +1,30 @@
 using ErrorOr;
+using Facturacion.Core;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces.Servicios;
+using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace Facturacion.Infraestructura.Servicios.Pdf;
 
-public class ServicioPdf : IServicioPdf
+public class ServicioPdf(ILogger<ServicioPdf> logger) : IServicioPdf
 {
     static ServicioPdf()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+    }
+
+    private ErrorOr<byte[]> GenerarConManejo(Func<byte[]> generar, string claveAcceso)
+    {
+        try { return generar(); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generando PDF del documento {ClaveAcceso}", claveAcceso);
+            return Errores.Pdf.ErrorGeneracion;
+        }
     }
 
     // ── Factura ──────────────────────────────────────────────────────────────
@@ -20,7 +32,7 @@ public class ServicioPdf : IServicioPdf
     public Task<ErrorOr<byte[]>> GenerarRideFacturaAsync(
         Factura factura, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
+        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -50,14 +62,14 @@ public class ServicioPdf : IServicioPdf
                 if (factura.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, factura.InfoAdicional));
             });
-        })).GeneratePdf(), ct);
+        })).GeneratePdf(), factura.ClaveAcceso), ct);
 
     // ── Nota de Crédito ───────────────────────────────────────────────────────
 
     public Task<ErrorOr<byte[]>> GenerarRideNotaCreditoAsync(
         NotaCredito nc, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
+        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -86,14 +98,14 @@ public class ServicioPdf : IServicioPdf
                 if (nc.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, nc.InfoAdicional));
             });
-        })).GeneratePdf(), ct);
+        })).GeneratePdf(), nc.ClaveAcceso), ct);
 
     // ── Retención ─────────────────────────────────────────────────────────────
 
     public Task<ErrorOr<byte[]>> GenerarRideRetencionAsync(
         Retencion retencion, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => Document.Create(doc => doc.Page(page =>
+        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -121,7 +133,7 @@ public class ServicioPdf : IServicioPdf
                 if (retencion.InfoAdicional.Count > 0)
                     col.Item().Element(c => RenderInfoAdicional(c, retencion.InfoAdicional));
             });
-        })).GeneratePdf(), ct);
+        })).GeneratePdf(), retencion.ClaveAcceso), ct);
 
     // ── Encabezado ────────────────────────────────────────────────────────────
 

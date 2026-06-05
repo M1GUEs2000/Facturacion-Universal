@@ -1,5 +1,7 @@
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
+using Facturacion.Infraestructura.Audit;
 using Facturacion.Infraestructura.Persistencia.Contexto;
 using Facturacion.Infraestructura.Persistencia.Repositorios;
 using Facturacion.Infraestructura.Seguridad;
@@ -48,8 +50,14 @@ public static class InfraestructuraExtensions
         services.AddScoped<IServicioPdf, ServicioPdf>();
 
         // SRI HttpClient
-        services.AddHttpClient("sri");
+        services.AddHttpClient("sri", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
         services.AddScoped<IServicioSri, ServicioSri>();
+
+        // Audit
+        services.AddScoped<IAuditLogger, AuditLogger>();
 
         // Storage Supabase
         services.AddHttpClient("supabase-storage");
@@ -71,10 +79,11 @@ public static class InfraestructuraExtensions
             docsOpts,
             sp.GetRequiredService<ILogger<ServicioStorageSupabase>>()));
 
-        services.AddScoped<IServicioStorageFirmaYLogo>(sp => new ServicioStorageSupabase(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            firmaOptsAdaptado,
-            sp.GetRequiredService<ILogger<ServicioStorageSupabase>>()));
+        services.AddScoped<IServicioStorageFirmaYLogo>(sp => new CifradoCertificadoStorageDecorator(
+            new ServicioStorageSupabase(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                firmaOptsAdaptado,
+                sp.GetRequiredService<ILogger<ServicioStorageSupabase>>())));
 
         return services;
     }

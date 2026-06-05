@@ -4,6 +4,9 @@ on:
   push:
     branches: ["**"]
 
+permissions:
+  contents: write
+
 jobs:
   check-vault-sync:
     runs-on: ubuntu-latest

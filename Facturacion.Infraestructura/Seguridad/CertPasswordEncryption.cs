@@ -61,4 +61,44 @@ public static class CertPasswordEncryption
 
         return Encoding.UTF8.GetString(plaintext);
     }
+
+    // Formato: nonce[12] + tag[16] + ciphertext
+    public static byte[] EncryptBytes(byte[] data)
+    {
+        if (_key.Length == 0)
+            throw new InvalidOperationException("CertPasswordEncryption no fue inicializado. Configura Encryption:CertPasswordKey.");
+
+        var nonce = new byte[AesGcm.NonceByteSizes.MaxSize];
+        RandomNumberGenerator.Fill(nonce);
+
+        var ciphertext = new byte[data.Length];
+        var tag = new byte[AesGcm.TagByteSizes.MaxSize];
+
+        using var aes = new AesGcm(_key, AesGcm.TagByteSizes.MaxSize);
+        aes.Encrypt(nonce, data, ciphertext, tag);
+
+        var result = new byte[nonce.Length + tag.Length + ciphertext.Length];
+        nonce.CopyTo(result, 0);
+        tag.CopyTo(result, nonce.Length);
+        ciphertext.CopyTo(result, nonce.Length + tag.Length);
+        return result;
+    }
+
+    public static byte[] DecryptBytes(byte[] encrypted)
+    {
+        if (_key.Length == 0)
+            throw new InvalidOperationException("CertPasswordEncryption no fue inicializado. Configura Encryption:CertPasswordKey.");
+
+        var nonceSize = AesGcm.NonceByteSizes.MaxSize;
+        var tagSize = AesGcm.TagByteSizes.MaxSize;
+
+        var nonce = encrypted[..nonceSize];
+        var tag = encrypted[nonceSize..(nonceSize + tagSize)];
+        var ciphertext = encrypted[(nonceSize + tagSize)..];
+        var plaintext = new byte[ciphertext.Length];
+
+        using var aes = new AesGcm(_key, tagSize);
+        aes.Decrypt(nonce, ciphertext, tag, plaintext);
+        return plaintext;
+    }
 }

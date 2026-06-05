@@ -8,6 +8,7 @@ using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Tests.Soporte;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
 namespace Facturacion.Tests.Unitarios;
@@ -27,7 +28,8 @@ public class EmitirFacturaTests
 
     private EmitirFactura CrearUseCase()
     {
-        var orquestador = new OrquestadorEmision(_firma, _sri, _storageDocumentos);
+        var orquestador = new OrquestadorEmision(_firma, _sri, _storageDocumentos,
+            NullLogger<OrquestadorEmision>.Instance);
         return new EmitirFactura(
             _empresas,
             _facturas,

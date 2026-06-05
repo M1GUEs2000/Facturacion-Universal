@@ -1,8 +1,11 @@
+using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.NotasCredito;
 using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.NotasCredito;
 using Facturacion.Core.Entidades;
+using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -11,13 +14,14 @@ namespace Facturacion.Api.Endpoints.NotasCredito;
 
 public static class NotasCreditoEndpoints
 {
-    public static WebApplication MapNotasCreditoEndpoints(this WebApplication app)
+    public static IEndpointRouteBuilder MapNotasCreditoEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/notas-credito")
             .WithTags("Notas de Crédito")
             .RequireAuthorization()
             .RequireRateLimiting("emision");
 
+        group.MapGet("", Listar).WithName("ListarNotasCredito");
         group.MapPost("/", Emitir).WithName("EmitirNotaCredito");
         group.MapPost("/preview", Preview).WithName("PreviewNotaCredito");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarNotaCredito");
@@ -25,6 +29,36 @@ public static class NotasCreditoEndpoints
         group.MapGet("/{id:guid}/xml", ObtenerXml).WithName("DescargarXmlNotaCredito");
 
         return app;
+    }
+
+    private static async Task<IResult> Listar(
+        [FromServices] INotasCreditoRepositorio notasCredito,
+        [FromServices] IEmpresasRepositorio empresas,
+        HttpContext ctx,
+        CancellationToken ct,
+        [FromQuery] string empresaRuc = "",
+        [FromQuery] EstadoSri? estado = null,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanoPagina = 50)
+    {
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(empresaRuc))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+                { ["empresaRuc"] = ["El parámetro empresaRuc es requerido."] });
+
+        var empresa = await empresas.ObtenerPorRucAsync(empresaRuc, ct);
+        if (empresa is null || empresa.CuentaId != cuentaId)
+            return Results.NotFound();
+
+        if (pagina < 1) pagina = 1;
+        if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
+
+        var lista = await notasCredito.ListarPorEmpresaAsync(empresaRuc, estado, pagina, tamanoPagina, ct);
+        var total = await notasCredito.ContarPorEmpresaAsync(empresaRuc, estado, ct);
+        var data = lista.Select(NotaCreditoResponse.From).ToList();
+        return Results.Ok(new PaginaResponse<NotaCreditoResponse>(data, total, pagina, tamanoPagina, pagina * tamanoPagina < total));
     }
 
     private static async Task<IResult> ObtenerPdf(
@@ -102,13 +136,23 @@ public static class NotasCreditoEndpoints
     private static async Task<IResult> Reintentar(
         Guid id,
         [FromServices] ReintentarEmisionNotaCredito useCase,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
             return Results.Unauthorized();
 
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
         var result = await useCase.EjecutarAsync(id, cuentaId, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.NotaCreditoReintentada,
+            CuentaId: cuentaId,
+            Ruc: result.IsError ? null : result.Value.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             nota => Results.Ok(NotaCreditoResponse.From(nota)),
             errors => errors.ToProblemResult());
@@ -118,6 +162,7 @@ public static class NotasCreditoEndpoints
         [FromBody] EmitirNotaCreditoRequest req,
         [FromServices] EmitirNotaCredito useCase,
         [FromServices] IValidator<EmitirNotaCreditoRequest> validator,
+        [FromServices] IAuditLogger audit,
         HttpContext ctx,
         CancellationToken ct)
     {
@@ -152,6 +197,14 @@ public static class NotasCreditoEndpoints
             infoAdicional, detalle, ip, cuentaId);
 
         var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.NotaCreditoEmitida,
+            CuentaId: cuentaId,
+            Ruc: req.EmpresaRuc,
+            ClaveAcceso: result.IsError ? null : result.Value.ClaveAcceso,
+            Ip: ip,
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
         return result.Match(
             nota => Results.Created($"/notas-credito/{nota.Id}", NotaCreditoResponse.From(nota)),
             errors => errors.ToProblemResult());
