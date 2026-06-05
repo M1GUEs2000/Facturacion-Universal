@@ -20,8 +20,12 @@ RUN dotnet publish Facturacion.Api/Facturacion.Api.csproj -c Release --no-restor
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
+RUN adduser --disabled-password --no-create-home appuser
+
 EXPOSE 8080
 
 COPY --from=build /app/publish .
+
+USER appuser
 
 ENTRYPOINT ["dotnet", "Facturacion.Api.dll"]

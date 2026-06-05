@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RetencionDetalle> RetencionesDetalle => Set<RetencionDetalle>();
     public DbSet<SecuencialSri> SecuencialesSri => Set<SecuencialSri>();
     public DbSet<ParametrosFacturacion> ParametrosFacturacion => Set<ParametrosFacturacion>();
+    public DbSet<IdempotencyRecord> IdempotencyKeys => Set<IdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

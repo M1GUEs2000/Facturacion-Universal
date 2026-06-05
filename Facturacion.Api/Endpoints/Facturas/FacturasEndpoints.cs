@@ -1,5 +1,6 @@
 using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.Facturas;
+using Facturacion.Api.Filters;
 using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Facturas;
@@ -22,7 +23,7 @@ public static class FacturasEndpoints
             .RequireRateLimiting("emision");
 
         group.MapGet("", Listar).WithName("ListarFacturas");
-        group.MapPost("/", Emitir).WithName("EmitirFactura");
+        group.MapPost("/", Emitir).WithName("EmitirFactura").AddEndpointFilter<IdempotencyFilter>();
         group.MapPost("/preview", Preview).WithName("PreviewFactura");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarFactura");
         group.MapGet("/{id:guid}/pdf", ObtenerPdf).WithName("DescargarPdfFactura");

@@ -1,5 +1,6 @@
 using Facturacion.Api.Contratos.Comun;
 using Facturacion.Api.Contratos.Retenciones;
+using Facturacion.Api.Filters;
 using Facturacion.Api.Extensions;
 using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Retenciones;
@@ -22,7 +23,7 @@ public static class RetencionesEndpoints
             .RequireRateLimiting("emision");
 
         group.MapGet("", Listar).WithName("ListarRetenciones");
-        group.MapPost("/", Emitir).WithName("EmitirRetencion");
+        group.MapPost("/", Emitir).WithName("EmitirRetencion").AddEndpointFilter<IdempotencyFilter>();
         group.MapPost("/preview", Preview).WithName("PreviewRetencion");
         group.MapPost("/{id:guid}/reintentar", Reintentar).WithName("ReintentarRetencion");
         group.MapGet("/{id:guid}/pdf", ObtenerPdf).WithName("DescargarPdfRetencion");

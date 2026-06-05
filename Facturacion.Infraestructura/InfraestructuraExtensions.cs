@@ -43,6 +43,7 @@ public static class InfraestructuraExtensions
         services.AddScoped<IRetencionesRepositorio, RetencionesRepositorio>();
         services.AddScoped<ISecuencialesSriRepositorio, SecuencialesSriRepositorio>();
         services.AddScoped<IParametrosFacturacionRepositorio, ParametrosFacturacionRepositorio>();
+        services.AddScoped<IIdempotencyRepositorio, IdempotencyRepositorio>();
 
         // Servicios
         services.AddScoped<IServicioXml, ServicioXml>();
