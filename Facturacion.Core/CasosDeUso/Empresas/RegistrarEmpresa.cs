@@ -20,10 +20,20 @@ public record ComandoRegistrarEmpresa(
 
 public class RegistrarEmpresa(
     IEmpresasRepositorio empresas,
+    ICuentasRepositorio cuentas,
     IServicioStorageFirmaYLogo storage)
 {
     public async Task<ErrorOr<Empresa>> EjecutarAsync(ComandoRegistrarEmpresa cmd, CancellationToken ct = default)
     {
+        var cuenta = await cuentas.ObtenerPorIdAsync(cmd.CuentaId, ct);
+        if (cuenta is null) return Errores.Cuenta.NoEncontrada;
+
+        if (cuenta.FechaExpira.HasValue && cuenta.FechaExpira.Value < DateTimeOffset.UtcNow)
+            return Errores.Cuenta.Expirada;
+
+        var totalEmpresas = await empresas.ContarPorCuentaAsync(cmd.CuentaId, ct);
+        if (totalEmpresas >= cuenta.MaxEmpresas) return Errores.Cuenta.LimiteEmpresas;
+
         if (await empresas.ExisteAsync(cmd.Ruc, ct))
             return Errores.Empresa.RucDuplicado;
 

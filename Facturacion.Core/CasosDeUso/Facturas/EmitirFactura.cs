@@ -84,7 +84,7 @@ public class EmitirFactura(
         }
         else
         {
-            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "01", ct);
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, TipoDocumentoSri.Factura, ct);
             if (secResult.IsError) return secResult.Errors;
             secuencial = secResult.Value.ToString("D9");
         }

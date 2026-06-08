@@ -3,6 +3,16 @@ using FluentValidation;
 
 namespace Facturacion.Api.Contratos.Empresas;
 
+public record RegistrarEmpresaRequest(
+    string Ruc,
+    string Nombre,
+    string DirMatriz,
+    string CertificadoP12Base64,
+    string CertPassword,
+    string? NombreComercial = null,
+    string? LogoBase64 = null,
+    string? LogoContentType = null);
+
 public record ActualizarCertificadoRequest(
     string CertificadoP12Base64,
     string CertPassword);
@@ -41,6 +51,22 @@ public record EmpresaResponse(
                 ? new CuentaInfo(e.Cuenta.Id, e.Cuenta.Plan, e.Cuenta.MaxEmpresas, e.Cuenta.MaxUsuarios, e.Cuenta.FechaExpira)
                 : null,
             e.CreatedAt, e.UpdatedAt);
+}
+
+public class RegistrarEmpresaValidator : AbstractValidator<RegistrarEmpresaRequest>
+{
+    public RegistrarEmpresaValidator()
+    {
+        RuleFor(x => x.Ruc).NotEmpty().MaximumLength(13);
+        RuleFor(x => x.Nombre).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.DirMatriz).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.CertificadoP12Base64).NotEmpty();
+        RuleFor(x => x.CertPassword).NotEmpty();
+        RuleFor(x => x.LogoContentType)
+            .Must(EmpresaRequestValidation.EsLogoContentTypeValido)
+            .When(x => !string.IsNullOrWhiteSpace(x.LogoBase64))
+            .WithMessage("LogoContentType debe ser image/png, image/jpeg o image/webp.");
+    }
 }
 
 public class ActualizarCertificadoValidator : AbstractValidator<ActualizarCertificadoRequest>

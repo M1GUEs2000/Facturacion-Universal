@@ -24,9 +24,9 @@ public class GeneradorClaveAccesoTests
     }
 
     [Theory]
-    [InlineData("01", Ambiente.Pruebas, "0406202601179001234500110010020000001231234567815")]
-    [InlineData("04", Ambiente.Pruebas, "0406202604179001234500110010020000001231234567814")]
-    [InlineData("07", Ambiente.Produccion, "0406202607179001234500120010020000001231234567811")]
+    [InlineData(TipoDocumentoSri.Factura, Ambiente.Pruebas, "0406202601179001234500110010020000001231234567815")]
+    [InlineData(TipoDocumentoSri.NotaCredito, Ambiente.Pruebas, "0406202604179001234500110010020000001231234567814")]
+    [InlineData(TipoDocumentoSri.Retencion, Ambiente.Produccion, "0406202607179001234500120010020000001231234567811")]
     public void Generar_CalculaDigitoVerificadorModulo11(string tipoDocumento, Ambiente ambiente, string esperado)
     {
         var clave = GeneradorClaveAcceso.Generar(

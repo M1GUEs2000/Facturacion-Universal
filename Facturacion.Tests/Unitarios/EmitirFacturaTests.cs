@@ -99,7 +99,7 @@ public class EmitirFacturaTests
     public async Task EjecutarAsync_CuandoNoHaySecuencialManual_IncrementaYFormateaANueveDigitos()
     {
         ConfigurarFlujoExitoso();
-        _secuenciales.IncrementarYObtenerAsync(TestData.Ruc, "01", Arg.Any<CancellationToken>())
+        _secuenciales.IncrementarYObtenerAsync(TestData.Ruc, TipoDocumentoSri.Factura, Arg.Any<CancellationToken>())
             .Returns((ErrorOr<long>)124);
         Factura? facturaPersistida = null;
         _facturas.AgregarAsync(Arg.Do<Factura>(f => facturaPersistida = f), Arg.Any<CancellationToken>())
@@ -111,7 +111,7 @@ public class EmitirFacturaTests
         facturaPersistida.Should().NotBeNull();
         facturaPersistida!.Secuencial.Should().Be("000000124");
         facturaPersistida.ClaveAcceso.Should().Contain("001002000000124");
-        await _secuenciales.Received(1).IncrementarYObtenerAsync(TestData.Ruc, "01", Arg.Any<CancellationToken>());
+        await _secuenciales.Received(1).IncrementarYObtenerAsync(TestData.Ruc, TipoDocumentoSri.Factura, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class EmitirFacturaTests
     public async Task EjecutarAsync_FlujoExitoso_FirmaEnviaAutorizaGuardaXmlYPdf()
     {
         ConfigurarFlujoExitoso();
-        _secuenciales.IncrementarYObtenerAsync(TestData.Ruc, "01", Arg.Any<CancellationToken>())
+        _secuenciales.IncrementarYObtenerAsync(TestData.Ruc, TipoDocumentoSri.Factura, Arg.Any<CancellationToken>())
             .Returns((ErrorOr<long>)124);
 
         var result = await CrearUseCase().EjecutarAsync(ComandoValido(secuencial: null));
@@ -210,7 +210,7 @@ public class EmitirFacturaTests
             "002",
             secuencial,
             TestData.FechaEmision,
-            "05",
+            TipoIdentificacion.Cedula,
             "0912345678",
             "Cliente Demo",
             "Direccion cliente",

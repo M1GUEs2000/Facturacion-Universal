@@ -69,7 +69,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
     private static XmlFactura MapearFactura(Factura f, Empresa e, ParametrosFacturacion? p) =>
         new()
         {
-            InfoTributaria = BuildInfoTributaria(e, f.ClaveAcceso, "01", f.Ambiente, f.Estab, f.PtoEmi, f.Secuencial),
+            InfoTributaria = BuildInfoTributaria(e, f.ClaveAcceso, TipoDocumentoSri.Factura, f.Ambiente, f.Estab, f.PtoEmi, f.Secuencial),
             InfoFactura = new XmlInfoFactura
             {
                 FechaEmision = f.FechaEmision.ToString("dd/MM/yyyy"),
@@ -79,7 +79,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
                 RazonSocialComprador = f.RazonSocialComprador,
                 IdentificacionComprador = f.IdentificacionComprador,
                 DireccionComprador = f.DireccionComprador,
-                Moneda = "DOLAR",
+                Moneda = ConstantesSri.Moneda,
                 GuiaRemision = f.GuiaRemision,
                 TotalSinImpuestos = M(f.TotalSinImpuestos),
                 TotalDescuento = M(f.TotalDescuento),
@@ -101,7 +101,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
     private static XmlNotaCredito MapearNotaCredito(NotaCredito n, Empresa e) =>
         new()
         {
-            InfoTributaria = BuildInfoTributaria(e, n.ClaveAcceso, "04", n.Ambiente, n.Estab, n.PtoEmi, n.Secuencial),
+            InfoTributaria = BuildInfoTributaria(e, n.ClaveAcceso, TipoDocumentoSri.NotaCredito, n.Ambiente, n.Estab, n.PtoEmi, n.Secuencial),
             InfoNotaCredito = new XmlInfoNotaCredito
             {
                 FechaEmision = n.FechaEmision.ToString("dd/MM/yyyy"),
@@ -114,7 +114,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
                 FechaEmisionDocSustento = n.DocModificadoFecha.ToString("dd/MM/yyyy"),
                 TotalSinImpuestos = M(n.TotalSinImpuestos),
                 ValorModificacion = M(n.ValorModificacion),
-                Moneda = "DOLAR",
+                Moneda = ConstantesSri.Moneda,
                 TotalConImpuestos = BuildTotalImpuestosNota(n),
                 Motivo = n.Motivo
             },
@@ -125,7 +125,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
     private static XmlRetencion MapearRetencion(Retencion r, Empresa e, ParametrosFacturacion? p) =>
         new()
         {
-            InfoTributaria = BuildInfoTributaria(e, r.ClaveAcceso, "07", r.Ambiente, r.Estab, r.PtoEmi, r.Secuencial),
+            InfoTributaria = BuildInfoTributaria(e, r.ClaveAcceso, TipoDocumentoSri.Retencion, r.Ambiente, r.Estab, r.PtoEmi, r.Secuencial),
             InfoCompRetencion = new XmlInfoCompRetencion
             {
                 FechaEmision = r.FechaEmision.ToString("dd/MM/yyyy"),
@@ -157,7 +157,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
         new()
         {
             Ambiente = ((int)ambiente).ToString(),
-            TipoEmision = "1",
+            TipoEmision = ConstantesSri.TipoEmisionNormal,
             RazonSocial = e.Nombre,
             NombreComercial = e.NombreComercial,
             Ruc = e.Ruc,
@@ -197,7 +197,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
         foreach (var g in detalleList.Where(d => getIceCodigo(d) != null).GroupBy(getIceCodigo))
             lista.Add(new XmlTotalImpuesto
             {
-                Codigo = "3",
+                Codigo = CodigoImpuestoSri.Ice,
                 CodigoPorcentaje = g.Key!,
                 BaseImponible = M(g.Sum(d => getIceBase(d) ?? 0m)),
                 Tarifa = M(getIceTarifa(g.First()) ?? 0m),
@@ -208,7 +208,7 @@ public class ServicioXml(ILogger<ServicioXml> logger) : IServicioXml
         foreach (var g in detalleList.GroupBy(getIvaCodigo))
             lista.Add(new XmlTotalImpuesto
             {
-                Codigo = "2",
+                Codigo = CodigoImpuestoSri.Iva,
                 CodigoPorcentaje = ((int)g.Key).ToString(),
                 BaseImponible = M(g.Sum(getIvaBase)),
                 Tarifa = M(getIvaTarifa(g.First())),

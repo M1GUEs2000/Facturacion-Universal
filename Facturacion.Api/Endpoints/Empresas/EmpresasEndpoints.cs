@@ -20,12 +20,55 @@ public static class EmpresasEndpoints
             .RequireAuthorization()
             .RequireRateLimiting("escritura");
 
+        group.MapPost("", Registrar).WithName("RegistrarEmpresa");
         group.MapGet("", Listar).WithName("ListarEmpresas");
         group.MapGet("/{ruc}", ObtenerPorRuc).WithName("ObtenerEmpresaPorRuc");
         group.MapPut("/{ruc}", Actualizar).WithName("ActualizarEmpresa");
         group.MapPut("/{ruc}/certificado", ActualizarCertificado).WithName("ActualizarCertificado");
 
         return app;
+    }
+
+    private static async Task<IResult> Registrar(
+        [FromBody] RegistrarEmpresaRequest req,
+        [FromServices] RegistrarEmpresa useCase,
+        [FromServices] IValidator<RegistrarEmpresaRequest> validator,
+        [FromServices] IAuditLogger audit,
+        HttpContext ctx,
+        CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(req, ct);
+        if (!validation.IsValid)
+            return Results.ValidationProblem(validation.ToDictionary());
+
+        if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
+            return Results.Unauthorized();
+
+        byte[] certBytes;
+        try { certBytes = Convert.FromBase64String(req.CertificadoP12Base64); }
+        catch { return Results.BadRequest(new { error = "CertificadoP12Base64 no es Base64 valido." }); }
+
+        var logoResult = DecodificarLogo(req.LogoBase64);
+        if (logoResult.Error is not null)
+            return Results.BadRequest(new { error = logoResult.Error });
+
+        var cmd = new ComandoRegistrarEmpresa(
+            req.Ruc, req.Nombre, req.DirMatriz,
+            certBytes, req.CertPassword, cuentaId,
+            req.NombreComercial, logoResult.Logo,
+            logoResult.Logo is null ? null : req.LogoContentType);
+
+        var result = await useCase.EjecutarAsync(cmd, ct);
+        audit.Registrar(new EventoAudit(
+            Tipo: EventosAudit.EmpresaRegistrada,
+            CuentaId: cuentaId,
+            Ruc: req.Ruc,
+            Ip: ctx.Connection.RemoteIpAddress?.ToString(),
+            Exito: !result.IsError,
+            CodigoError: result.IsError ? result.FirstError.Code : null));
+        return result.Match(
+            empresa => Results.Created($"/v1/empresas/{empresa.Ruc}", EmpresaResponse.From(empresa)),
+            errors => errors.ToProblemResult());
     }
 
     private static async Task<IResult> Listar(
@@ -73,7 +116,7 @@ public static class EmpresasEndpoints
     private static async Task<IResult> Actualizar(
         string ruc,
         [FromBody] ActualizarEmpresaRequest req,
-        [FromServices] GuardarEmpresa useCase,
+        [FromServices] ActualizarEmpresa useCase,
         [FromServices] IValidator<ActualizarEmpresaRequest> validator,
         [FromServices] IAuditLogger audit,
         HttpContext ctx,
@@ -94,7 +137,7 @@ public static class EmpresasEndpoints
         if (logoResult.Error is not null)
             return Results.BadRequest(new { error = logoResult.Error });
 
-        var cmd = new ComandoGuardarEmpresa(
+        var cmd = new ComandoActualizarEmpresa(
             ruc, req.Nombre, req.DirMatriz, cuentaId,
             req.NombreComercial, certResult.Bytes, req.CertPassword,
             logoResult.Logo, logoResult.Logo is null ? null : req.LogoContentType);

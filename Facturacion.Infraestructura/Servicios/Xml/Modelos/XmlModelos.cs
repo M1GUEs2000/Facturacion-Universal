@@ -1,4 +1,5 @@
 using System.Xml.Serialization;
+using Facturacion.Core.Enums;
 
 namespace Facturacion.Infraestructura.Servicios.Xml.Modelos;
 
@@ -7,7 +8,7 @@ namespace Facturacion.Infraestructura.Servicios.Xml.Modelos;
 public class XmlInfoTributaria
 {
     [XmlElement("ambiente")] public string Ambiente { get; set; } = "";
-    [XmlElement("tipoEmision")] public string TipoEmision { get; set; } = "1";
+    [XmlElement("tipoEmision")] public string TipoEmision { get; set; } = ConstantesSri.TipoEmisionNormal;
     [XmlElement("razonSocial")] public string RazonSocial { get; set; } = "";
     [XmlElement("nombreComercial")] public string? NombreComercial { get; set; }
     public bool ShouldSerializeNombreComercial() => !string.IsNullOrEmpty(NombreComercial);
@@ -76,7 +77,7 @@ public class XmlInfoFactura
     [XmlArray("totalConImpuestos")] [XmlArrayItem("totalImpuesto")] public List<XmlTotalImpuesto> TotalConImpuestos { get; set; } = new();
     [XmlElement("propina")] public string Propina { get; set; } = "";
     [XmlElement("importeTotal")] public string ImporteTotal { get; set; } = "";
-    [XmlElement("moneda")] public string Moneda { get; set; } = "DOLAR";
+    [XmlElement("moneda")] public string Moneda { get; set; } = ConstantesSri.Moneda;
     [XmlArray("pagos")] [XmlArrayItem("pago")] public List<XmlPago> Pagos { get; set; } = new();
 }
 
@@ -130,7 +131,7 @@ public class XmlInfoNotaCredito
     [XmlElement("fechaEmisionDocSustento")] public string FechaEmisionDocSustento { get; set; } = "";
     [XmlElement("totalSinImpuestos")] public string TotalSinImpuestos { get; set; } = "";
     [XmlElement("valorModificacion")] public string ValorModificacion { get; set; } = "";
-    [XmlElement("moneda")] public string Moneda { get; set; } = "DOLAR";
+    [XmlElement("moneda")] public string Moneda { get; set; } = ConstantesSri.Moneda;
     [XmlArray("totalConImpuestos")] [XmlArrayItem("totalImpuesto")] public List<XmlTotalImpuesto> TotalConImpuestos { get; set; } = new();
     [XmlElement("motivo")] public string Motivo { get; set; } = "";
 }

@@ -140,5 +140,11 @@ public static class Errores
 
         public static readonly Error Prohibido =
             Error.Forbidden("Cuenta.Prohibido", "No tiene acceso a esta cuenta.");
+
+        public static readonly Error LimiteEmpresas =
+            Error.Forbidden("Cuenta.LimiteEmpresas", "Se alcanzó el límite de empresas permitidas por el plan actual.");
+
+        public static readonly Error Expirada =
+            Error.Forbidden("Cuenta.Expirada", "La suscripción ha expirado.");
     }
 }

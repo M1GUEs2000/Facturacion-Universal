@@ -86,7 +86,7 @@ public class EmitirNotaCredito(
         }
         else
         {
-            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "04", ct);
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, TipoDocumentoSri.NotaCredito, ct);
             if (secResult.IsError) return secResult.Errors;
             secuencial = secResult.Value.ToString("D9");
         }

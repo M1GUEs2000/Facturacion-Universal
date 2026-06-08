@@ -71,7 +71,7 @@ public class EmitirRetencion(
         }
         else
         {
-            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, "07", ct);
+            var secResult = await secuenciales.IncrementarYObtenerAsync(cmd.EmpresaRuc, TipoDocumentoSri.Retencion, ct);
             if (secResult.IsError) return secResult.Errors;
             secuencial = secResult.Value.ToString("D9");
         }

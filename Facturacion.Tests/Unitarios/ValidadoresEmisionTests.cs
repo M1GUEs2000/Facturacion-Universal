@@ -25,12 +25,12 @@ public class ValidadoresEmisionTests
     }
 
     [Theory]
-    [InlineData("", "001", "002", "05", "0912345678", 112)]
-    [InlineData("1790012345001", "01", "002", "05", "0912345678", 112)]
-    [InlineData("1790012345001", "001", "2A2", "05", "0912345678", 112)]
+    [InlineData("", "001", "002", TipoIdentificacion.Cedula, "0912345678", 112)]
+    [InlineData("1790012345001", "01", "002", TipoIdentificacion.Cedula, "0912345678", 112)]
+    [InlineData("1790012345001", "001", "2A2", TipoIdentificacion.Cedula, "0912345678", 112)]
     [InlineData("1790012345001", "001", "002", "XX", "0912345678", 112)]
-    [InlineData("1790012345001", "001", "002", "05", "", 112)]
-    [InlineData("1790012345001", "001", "002", "05", "0912345678", 0)]
+    [InlineData("1790012345001", "001", "002", TipoIdentificacion.Cedula, "", 112)]
+    [InlineData("1790012345001", "001", "002", TipoIdentificacion.Cedula, "0912345678", 0)]
     public void EmitirFacturaValidator_RechazaCamposCriticosInvalidos(
         string ruc,
         string estab,
@@ -125,10 +125,10 @@ public class ValidadoresEmisionTests
     }
 
     [Theory]
-    [InlineData("", "001", "002", "05", "0406202601179001234500110010020000001231234567812", "Correccion")]
+    [InlineData("", "001", "002", TipoIdentificacion.Cedula, "0406202601179001234500110010020000001231234567812", "Correccion")]
     [InlineData("1790012345001", "001", "002", "XX", "0406202601179001234500110010020000001231234567812", "Correccion")]
-    [InlineData("1790012345001", "001", "002", "05", "123", "Correccion")]
-    [InlineData("1790012345001", "001", "002", "05", "0406202601179001234500110010020000001231234567812", "")]
+    [InlineData("1790012345001", "001", "002", TipoIdentificacion.Cedula, "123", "Correccion")]
+    [InlineData("1790012345001", "001", "002", TipoIdentificacion.Cedula, "0406202601179001234500110010020000001231234567812", "")]
     public void EmitirNotaCreditoValidator_RechazaCamposCriticosInvalidos(
         string ruc,
         string estab,
@@ -187,7 +187,7 @@ public class ValidadoresEmisionTests
                     baseImponible,
                     10m,
                     valorRetenido,
-                    "01",
+                    TipoDocumentoSri.Factura,
                     "001-002-000000123",
                     TestData.FechaEmision)
             ]
@@ -206,12 +206,12 @@ public class ValidadoresEmisionTests
             "002",
             null,
             TestData.FechaEmision,
-            "05",
+            TipoIdentificacion.Cedula,
             "0912345678",
             "Cliente Demo",
             "Direccion cliente",
             "Direccion establecimiento",
-            "01",
+            TipoDocumentoSri.Factura,
             "001-002-000000123",
             TestData.FechaEmision.AddDays(-1),
             "0406202601179001234500110010020000001231234567812",
@@ -250,7 +250,7 @@ public class ValidadoresEmisionTests
             "002",
             null,
             TestData.FechaEmision,
-            "04",
+            TipoIdentificacion.Ruc,
             "1790012345001",
             "Proveedor Demo",
             "Direccion proveedor",
@@ -262,12 +262,12 @@ public class ValidadoresEmisionTests
             [new RetencionInfoAdicionalRequest("Email", "proveedor@example.com")],
             [new DetalleRetencionRequest(
                 1,
-                "1",
+                CodigoImpuestoRetencion.Renta,
                 "303",
                 100m,
                 10m,
                 10m,
-                "01",
+                TipoDocumentoSri.Factura,
                 "001-002-000000123",
                 TestData.FechaEmision)]);
 }
