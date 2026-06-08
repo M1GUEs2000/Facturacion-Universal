@@ -46,6 +46,14 @@ public static class InfraestructuraExtensions
         services.AddScoped<ISecuencialesSriRepositorio, SecuencialesSriRepositorio>();
         services.AddScoped<IParametrosFacturacionRepositorio, ParametrosFacturacionRepositorio>();
 
+        // Semáforos CPU-bound: valor 0 = Environment.ProcessorCount
+        var limFirma = configuration.GetValue<int>("Concurrencia:ConcurrenciaFirma");
+        var limPdf   = configuration.GetValue<int>("Concurrencia:ConcurrenciaPdf");
+        if (limFirma <= 0) limFirma = Environment.ProcessorCount;
+        if (limPdf   <= 0) limPdf   = Environment.ProcessorCount;
+        services.AddKeyedSingleton<SemaphoreSlim>("semaforo-firma", new SemaphoreSlim(limFirma, limFirma));
+        services.AddKeyedSingleton<SemaphoreSlim>("semaforo-pdf",   new SemaphoreSlim(limPdf,   limPdf));
+
         // Servicios
         services.AddScoped<IServicioXml, ServicioXml>();
         services.AddScoped<IServicioFirma, ServicioFirma>();

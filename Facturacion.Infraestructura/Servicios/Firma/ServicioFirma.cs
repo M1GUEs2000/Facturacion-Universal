@@ -7,15 +7,28 @@ using Facturacion.Core.Interfaces.Servicios;
 using FirmaXadesNetCore;
 using FirmaXadesNetCore.Crypto;
 using FirmaXadesNetCore.Signature.Parameters;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Infraestructura.Servicios.Firma;
 
-public class ServicioFirma(ILogger<ServicioFirma> logger) : IServicioFirma
+public class ServicioFirma(
+    ILogger<ServicioFirma> logger,
+    [FromKeyedServices("semaforo-firma")] SemaphoreSlim semaforo) : IServicioFirma
 {
-    public Task<ErrorOr<string>> FirmarXmlAsync(
+    public async Task<ErrorOr<string>> FirmarXmlAsync(
         string xml, byte[] certificadoP12, string password, CancellationToken ct = default)
-        => Task.Run(() => Firmar(xml, certificadoP12, password, logger), ct);
+    {
+        await semaforo.WaitAsync(ct);
+        try
+        {
+            return await Task.Run(() => Firmar(xml, certificadoP12, password, logger), ct);
+        }
+        finally
+        {
+            semaforo.Release();
+        }
+    }
 
     private static ErrorOr<string> Firmar(string xml, byte[] certificadoP12, string password, ILogger logger)
     {

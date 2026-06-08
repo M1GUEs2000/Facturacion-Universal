@@ -3,6 +3,7 @@ using Facturacion.Core;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces.Servicios;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -10,7 +11,9 @@ using QuestPDF.Infrastructure;
 
 namespace Facturacion.Infraestructura.Servicios.Pdf;
 
-public class ServicioPdf(ILogger<ServicioPdf> logger) : IServicioPdf
+public class ServicioPdf(
+    ILogger<ServicioPdf> logger,
+    [FromKeyedServices("semaforo-pdf")] SemaphoreSlim semaforo) : IServicioPdf
 {
     static ServicioPdf()
     {
@@ -27,12 +30,19 @@ public class ServicioPdf(ILogger<ServicioPdf> logger) : IServicioPdf
         }
     }
 
+    private async Task<ErrorOr<byte[]>> ConSemaforo(Func<ErrorOr<byte[]>> generar, CancellationToken ct)
+    {
+        await semaforo.WaitAsync(ct);
+        try { return await Task.Run(generar, ct); }
+        finally { semaforo.Release(); }
+    }
+
     // ── Factura ──────────────────────────────────────────────────────────────
 
     public Task<ErrorOr<byte[]>> GenerarRideFacturaAsync(
         Factura factura, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
+        ConSemaforo(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -69,7 +79,7 @@ public class ServicioPdf(ILogger<ServicioPdf> logger) : IServicioPdf
     public Task<ErrorOr<byte[]>> GenerarRideNotaCreditoAsync(
         NotaCredito nc, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
+        ConSemaforo(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -105,7 +115,7 @@ public class ServicioPdf(ILogger<ServicioPdf> logger) : IServicioPdf
     public Task<ErrorOr<byte[]>> GenerarRideRetencionAsync(
         Retencion retencion, Empresa empresa, ParametrosFacturacion? parametros,
         byte[]? logoBytes, CancellationToken ct = default) =>
-        Task.Run<ErrorOr<byte[]>>(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
+        ConSemaforo(() => GenerarConManejo(() => Document.Create(doc => doc.Page(page =>
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
