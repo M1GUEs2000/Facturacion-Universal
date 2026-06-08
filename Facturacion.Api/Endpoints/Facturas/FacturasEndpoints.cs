@@ -6,6 +6,7 @@ using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
 using Facturacion.Core.Interfaces;
+using Facturacion.Core.Interfaces.Comun;
 using Facturacion.Core.Interfaces.Repositorios;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -38,7 +39,7 @@ public static class FacturasEndpoints
         CancellationToken ct,
         [FromQuery] string empresaRuc = "",
         [FromQuery] EstadoSri? estado = null,
-        [FromQuery] int pagina = 1,
+        [FromQuery] string? cursor = null,
         [FromQuery] int tamanoPagina = 50)
     {
         if (!Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var cuentaId))
@@ -52,13 +53,14 @@ public static class FacturasEndpoints
         if (empresa is null || empresa.CuentaId != cuentaId)
             return Results.NotFound();
 
-        if (pagina < 1) pagina = 1;
         if (tamanoPagina is < 1 or > 100) tamanoPagina = 50;
 
-        var lista = await facturas.ListarPorEmpresaAsync(empresaRuc, estado, pagina, tamanoPagina, ct);
-        var total = await facturas.ContarPorEmpresaAsync(empresaRuc, estado, ct);
-        var data = lista.Select(FacturaResponse.From).ToList();
-        return Results.Ok(new PaginaResponse<FacturaResponse>(data, total, pagina, tamanoPagina, pagina * tamanoPagina < total));
+        var cursorDecodificado = CursorDePagina.Decode(cursor);
+        var items = await facturas.ListarConCursorAsync(empresaRuc, estado, cursorDecodificado, tamanoPagina, ct);
+        var hayMas = items.Count > tamanoPagina;
+        var data = items.Take(tamanoPagina).Select(FacturaResponse.From).ToList();
+        var nextCursor = hayMas ? new CursorDePagina(items[tamanoPagina - 1].CreatedAt, items[tamanoPagina - 1].Id).Encode() : null;
+        return Results.Ok(new PaginaCursorResponse<FacturaResponse>(data, nextCursor));
     }
 
     private static async Task<IResult> ObtenerPdf(

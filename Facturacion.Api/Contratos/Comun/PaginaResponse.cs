@@ -6,3 +6,7 @@ public record PaginaResponse<T>(
     int Pagina,
     int TamanoPagina,
     bool HasNextPage);
+
+public record PaginaCursorResponse<T>(
+    IReadOnlyList<T> Data,
+    string? NextCursor);

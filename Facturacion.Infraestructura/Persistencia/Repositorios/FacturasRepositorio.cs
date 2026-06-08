@@ -1,5 +1,6 @@
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces.Comun;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Infraestructura.Persistencia.Contexto;
 using Microsoft.EntityFrameworkCore;
@@ -32,24 +33,19 @@ public class FacturasRepositorio(AppDbContext context) : IFacturasRepositorio
             f.EstadoSri != EstadoSri.Pendiente &&
             f.EstadoSri != EstadoSri.NoAutorizado, ct);
 
-    public async Task<IReadOnlyList<Factura>> ListarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, int pagina = 1, int tamanoPagina = 50, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Factura>> ListarConCursorAsync(
+        string empresaRuc, EstadoSri? estado, CursorDePagina? cursor, int tamanoPagina, CancellationToken ct = default)
     {
         var query = context.Facturas.Where(f => f.EmpresaRuc == empresaRuc);
         if (estado.HasValue)
             query = query.Where(f => f.EstadoSri == estado.Value);
+        if (cursor is not null)
+            query = query.Where(f => f.CreatedAt < cursor.CreatedAt);
         return await query
-            .OrderByDescending(f => f.FechaEmision)
-            .Skip((pagina - 1) * tamanoPagina)
-            .Take(tamanoPagina)
+            .OrderByDescending(f => f.CreatedAt)
+            .ThenByDescending(f => f.Id)
+            .Take(tamanoPagina + 1)
             .ToListAsync(ct);
-    }
-
-    public async Task<int> ContarPorEmpresaAsync(string empresaRuc, EstadoSri? estado = null, CancellationToken ct = default)
-    {
-        var query = context.Facturas.Where(f => f.EmpresaRuc == empresaRuc);
-        if (estado.HasValue)
-            query = query.Where(f => f.EstadoSri == estado.Value);
-        return await query.CountAsync(ct);
     }
 
     public async Task AgregarAsync(Factura factura, CancellationToken ct = default)
