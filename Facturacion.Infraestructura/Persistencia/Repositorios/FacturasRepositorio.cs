@@ -53,14 +53,11 @@ public class FacturasRepositorio(AppDbContext context) : IFacturasRepositorio
     }
 
     public async Task AgregarAsync(Factura factura, CancellationToken ct = default)
-    {
-        await context.Facturas.AddAsync(factura, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.Facturas.AddAsync(factura, ct);
 
-    public async Task ActualizarAsync(Factura factura, CancellationToken ct = default)
+    public Task ActualizarAsync(Factura factura, CancellationToken ct = default)
     {
         context.Facturas.Update(factura);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

@@ -53,14 +53,11 @@ public class NotasCreditoRepositorio(AppDbContext context) : INotasCreditoReposi
     }
 
     public async Task AgregarAsync(NotaCredito notaCredito, CancellationToken ct = default)
-    {
-        await context.NotasCredito.AddAsync(notaCredito, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.NotasCredito.AddAsync(notaCredito, ct);
 
-    public async Task ActualizarAsync(NotaCredito notaCredito, CancellationToken ct = default)
+    public Task ActualizarAsync(NotaCredito notaCredito, CancellationToken ct = default)
     {
         context.NotasCredito.Update(notaCredito);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

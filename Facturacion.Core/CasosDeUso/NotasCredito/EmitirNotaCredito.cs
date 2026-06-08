@@ -130,8 +130,6 @@ public class EmitirNotaCredito(
             nota, claveAcceso, cmd.Ambiente, xmlResult.Value,
             RutasStorage.PrefijoNotasCredito(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t),
-            (n, t) => notasCredito.ActualizarAsync(n, t),
-            null), ct);
+            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t)), ct);
     }
 }

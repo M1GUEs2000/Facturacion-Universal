@@ -1,6 +1,7 @@
 using ErrorOr;
 using Facturacion.Core.Entidades;
 using Facturacion.Core;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
@@ -21,7 +22,8 @@ public record ComandoRegistrarEmpresa(
 public class RegistrarEmpresa(
     IEmpresasRepositorio empresas,
     ICuentasRepositorio cuentas,
-    IServicioStorageFirmaYLogo storage)
+    IServicioStorageFirmaYLogo storage,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ErrorOr<Empresa>> EjecutarAsync(ComandoRegistrarEmpresa cmd, CancellationToken ct = default)
     {
@@ -55,6 +57,7 @@ public class RegistrarEmpresa(
             cmd.NombreComercial, logoPath, cmd.LogoContentType);
 
         await empresas.AgregarAsync(empresa, ct);
+        await unitOfWork.CommitAsync(ct);
         return empresa;
     }
 }

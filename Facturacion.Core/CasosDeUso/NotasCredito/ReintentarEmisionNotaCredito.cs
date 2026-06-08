@@ -48,7 +48,6 @@ public class ReintentarEmisionNotaCredito(
             certResult.Value,
             empresa.CertPassword,
             (n, _) => xml.GenerarXmlNotaCredito(n, empresa),
-            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t),
-            (n, t) => notasCredito.ActualizarAsync(n, t)), ct);
+            (n, t) => pdf.GenerarRideNotaCreditoAsync(n, empresa, parametros, logoBytes, t)), ct);
     }
 }

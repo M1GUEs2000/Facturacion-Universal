@@ -112,8 +112,6 @@ public class EmitirRetencion(
             retencion, claveAcceso, cmd.Ambiente, xmlResult.Value,
             RutasStorage.PrefijoRetenciones(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t),
-            (r, t) => retenciones.ActualizarAsync(r, t),
-            null), ct);
+            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t)), ct);
     }
 }

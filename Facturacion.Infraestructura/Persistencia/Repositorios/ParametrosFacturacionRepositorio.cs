@@ -11,14 +11,11 @@ public class ParametrosFacturacionRepositorio(AppDbContext context) : IParametro
         => await context.ParametrosFacturacion.FirstOrDefaultAsync(p => p.EmpresaRuc == empresaRuc, ct);
 
     public async Task AgregarAsync(ParametrosFacturacion parametros, CancellationToken ct = default)
-    {
-        await context.ParametrosFacturacion.AddAsync(parametros, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.ParametrosFacturacion.AddAsync(parametros, ct);
 
-    public async Task ActualizarAsync(ParametrosFacturacion parametros, CancellationToken ct = default)
+    public Task ActualizarAsync(ParametrosFacturacion parametros, CancellationToken ct = default)
     {
         context.ParametrosFacturacion.Update(parametros);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

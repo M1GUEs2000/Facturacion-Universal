@@ -4,6 +4,7 @@ using Facturacion.Core.CasosDeUso.Comun;
 using Facturacion.Core.CasosDeUso.Facturas;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Tests.Soporte;
@@ -25,10 +26,12 @@ public class EmitirFacturaTests
     private readonly IServicioFirma _firma = Substitute.For<IServicioFirma>();
     private readonly IServicioSri _sri = Substitute.For<IServicioSri>();
     private readonly IServicioStorage _storageDocumentos = Substitute.For<IServicioStorage>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
     private EmitirFactura CrearUseCase()
     {
         var orquestador = new OrquestadorEmision(_firma, _sri, _storageDocumentos,
+            _unitOfWork,
             NullLogger<OrquestadorEmision>.Instance);
         return new EmitirFactura(
             _empresas,
@@ -162,7 +165,8 @@ public class EmitirFacturaTests
             Arg.Any<ParametrosFacturacion?>(),
             Arg.Any<byte[]?>(),
             Arg.Any<CancellationToken>());
-        await _facturas.Received().ActualizarAsync(Arg.Is<Factura>(f => f.EstadoSri == EstadoSri.Autorizado), Arg.Any<CancellationToken>());
+        // Con UoW, el orquestador llama CommitAsync en cada checkpoint (5 veces en flujo feliz)
+        await _unitOfWork.Received(5).CommitAsync(Arg.Any<CancellationToken>());
     }
 
     private void ConfigurarFlujoExitoso()

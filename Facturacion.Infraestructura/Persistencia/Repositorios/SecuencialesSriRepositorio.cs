@@ -20,15 +20,12 @@ public class SecuencialesSriRepositorio(AppDbContext context) : ISecuencialesSri
             .FirstOrDefaultAsync(p => p.EmpresaRuc == empresaRuc && p.TipoComprobante == tipoComprobante, ct);
 
     public async Task AgregarAsync(SecuencialSri parametro, CancellationToken ct = default)
-    {
-        await context.SecuencialesSri.AddAsync(parametro, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.SecuencialesSri.AddAsync(parametro, ct);
 
-    public async Task ActualizarAsync(SecuencialSri parametro, CancellationToken ct = default)
+    public Task ActualizarAsync(SecuencialSri parametro, CancellationToken ct = default)
     {
         context.SecuencialesSri.Update(parametro);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 
     public async Task<ErrorOr<long>> IncrementarYObtenerAsync(string empresaRuc, string tipoComprobante, CancellationToken ct = default)

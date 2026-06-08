@@ -53,14 +53,11 @@ public class RetencionesRepositorio(AppDbContext context) : IRetencionesReposito
     }
 
     public async Task AgregarAsync(Retencion retencion, CancellationToken ct = default)
-    {
-        await context.Retenciones.AddAsync(retencion, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.Retenciones.AddAsync(retencion, ct);
 
-    public async Task ActualizarAsync(Retencion retencion, CancellationToken ct = default)
+    public Task ActualizarAsync(Retencion retencion, CancellationToken ct = default)
     {
         context.Retenciones.Update(retencion);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

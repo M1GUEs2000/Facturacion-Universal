@@ -1,6 +1,7 @@
 using ErrorOr;
 using Facturacion.Core.Entidades;
 using Facturacion.Core;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
@@ -13,7 +14,7 @@ public record ComandoActualizarCertificado(
     string CertPassword,
     Guid CuentaId);
 
-public class ActualizarCertificado(IEmpresasRepositorio empresas, IServicioStorageFirmaYLogo storage)
+public class ActualizarCertificado(IEmpresasRepositorio empresas, IServicioStorageFirmaYLogo storage, IUnitOfWork unitOfWork)
 {
     public async Task<ErrorOr<Empresa>> EjecutarAsync(ComandoActualizarCertificado cmd, CancellationToken ct = default)
     {
@@ -30,6 +31,7 @@ public class ActualizarCertificado(IEmpresasRepositorio empresas, IServicioStora
 
         empresa.ActualizarCertificado(certResult.Value, cmd.CertPassword);
         await empresas.ActualizarAsync(empresa, ct);
+        await unitOfWork.CommitAsync(ct);
 
         return empresa;
     }

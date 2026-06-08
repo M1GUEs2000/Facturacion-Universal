@@ -48,7 +48,6 @@ public class ReintentarEmisionFactura(
             certResult.Value,
             empresa.CertPassword,
             (f, _) => xml.GenerarXmlFactura(f, empresa, parametros),
-            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t),
-            (f, t) => facturas.ActualizarAsync(f, t)), ct);
+            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t)), ct);
     }
 }

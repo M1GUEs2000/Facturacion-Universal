@@ -48,7 +48,6 @@ public class ReintentarEmisionRetencion(
             certResult.Value,
             empresa.CertPassword,
             (r, _) => xml.GenerarXmlRetencion(r, empresa, parametros),
-            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t),
-            (r, t) => retenciones.ActualizarAsync(r, t)), ct);
+            (r, t) => pdf.GenerarRideRetencionAsync(r, empresa, parametros, logoBytes, t)), ct);
     }
 }

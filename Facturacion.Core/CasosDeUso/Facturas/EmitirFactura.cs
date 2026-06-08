@@ -126,8 +126,6 @@ public class EmitirFactura(
             factura, claveAcceso, cmd.Ambiente, xmlResult.Value,
             RutasStorage.PrefijoFacturas(empresa.Ruc),
             certResult.Value, empresa.CertPassword,
-            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t),
-            (f, t) => facturas.ActualizarAsync(f, t),
-            null), ct);
+            (f, t) => pdf.GenerarRideFacturaAsync(f, empresa, parametros, logoBytes, t)), ct);
     }
 }

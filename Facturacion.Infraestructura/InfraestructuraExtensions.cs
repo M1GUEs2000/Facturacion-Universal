@@ -36,6 +36,8 @@ public static class InfraestructuraExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         services.AddScoped<ICuentasRepositorio, CuentasRepositorio>();
         services.AddScoped<IEmpresasRepositorio, EmpresasRepositorio>();
         services.AddScoped<IFacturasRepositorio, FacturasRepositorio>();

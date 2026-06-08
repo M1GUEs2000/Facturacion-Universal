@@ -1,4 +1,5 @@
 using ErrorOr;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 using Facturacion.Core.Interfaces.Servicios;
 using Facturacion.Core.Metodos;
@@ -16,7 +17,7 @@ public record ComandoActualizarEmpresa(
     byte[]? Logo = null,
     string? LogoContentType = null);
 
-public class ActualizarEmpresa(IEmpresasRepositorio empresas, IServicioStorageFirmaYLogo storage)
+public class ActualizarEmpresa(IEmpresasRepositorio empresas, IServicioStorageFirmaYLogo storage, IUnitOfWork unitOfWork)
 {
     public async Task<ErrorOr<Entidades.Empresa>> EjecutarAsync(ComandoActualizarEmpresa cmd, CancellationToken ct = default)
     {
@@ -46,6 +47,7 @@ public class ActualizarEmpresa(IEmpresasRepositorio empresas, IServicioStorageFi
         }
 
         await empresas.ActualizarAsync(empresa, ct);
+        await unitOfWork.CommitAsync(ct);
         return empresa;
     }
 }

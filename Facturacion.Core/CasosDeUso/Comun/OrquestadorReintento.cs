@@ -16,12 +16,12 @@ public record ParametrosReintento<TDoc>(
     byte[] CertificadoP12,
     string CertPassword,
     Func<TDoc, CancellationToken, ErrorOr<string>> GenerarXmlSinFirmar,
-    Func<TDoc, CancellationToken, Task<ErrorOr<byte[]>>> GenerarPdf,
-    Func<TDoc, CancellationToken, Task> Persistir)
+    Func<TDoc, CancellationToken, Task<ErrorOr<byte[]>>> GenerarPdf)
     where TDoc : IDocumentoEmitible;
 
 public class OrquestadorReintento(
     IServicioFirma firma, IServicioSri sri, IServicioStorage storage,
+    IUnitOfWork unitOfWork,
     ILogger<OrquestadorReintento> logger)
 {
     public async Task<ErrorOr<TDoc>> EjecutarAsync<TDoc>(
@@ -45,7 +45,7 @@ public class OrquestadorReintento(
             if (storageResult.IsError) return storageResult.Errors;
 
             doc.RegistrarXmlFirmado(storageResult.Value);
-            await p.Persistir(doc, ct);
+            await unitOfWork.CommitAsync(ct);
         }
 
         // ── Paso 2: Recepción SRI ─────────────────────────────────────────────
@@ -64,7 +64,7 @@ public class OrquestadorReintento(
                 return recepcionResult.Errors;
 
             doc.RegistrarEnvioSri();
-            await p.Persistir(doc, ct);
+            await unitOfWork.CommitAsync(ct);
         }
 
         // ── Paso 3: Autorización SRI + storage XML autorizado ─────────────────
@@ -89,13 +89,13 @@ public class OrquestadorReintento(
                             doc.XmlFirmadoPath, p.ClaveAcceso, borrarResult.FirstError.Description);
                 }
                 doc.RegistrarNoAutorizacion(auth.MensajeSri);
-                await p.Persistir(doc, ct);
+                await unitOfWork.CommitAsync(ct);
                 return Errores.Sri.NoAutorizado(auth.MensajeSri);
             }
 
             // Persiste el número antes de intentar guardar el XML, por si el storage falla.
             doc.RegistrarNumeroAutorizacion(auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value, auth.MensajeSri);
-            await p.Persistir(doc, ct);
+            await unitOfWork.CommitAsync(ct);
 
             var xmlAutPath = RutasStorage.XmlAutorizado(p.StoragePrefijo, p.ClaveAcceso);
             var storageXmlAutResult = await storage.GuardarAsync(Encoding.UTF8.GetBytes(auth.XmlAutorizado!), xmlAutPath, ct);
@@ -114,7 +114,7 @@ public class OrquestadorReintento(
             doc.RegistrarAutorizacionSri(
                 auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value,
                 storageXmlAutResult.Value, auth.MensajeSri);
-            await p.Persistir(doc, ct);
+            await unitOfWork.CommitAsync(ct);
         }
 
         // ── Paso 4: PDF ───────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ public class OrquestadorReintento(
             if (storagePdfResult.IsError) return storagePdfResult.Errors;
 
             doc.RegistrarPdf(storagePdfResult.Value);
-            await p.Persistir(doc, ct);
+            await unitOfWork.CommitAsync(ct);
         }
 
         return doc;

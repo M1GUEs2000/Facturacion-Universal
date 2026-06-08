@@ -26,14 +26,11 @@ public class EmpresasRepositorio(AppDbContext context) : IEmpresasRepositorio
         => await context.Empresas.AnyAsync(e => e.Ruc == ruc, ct);
 
     public async Task AgregarAsync(Empresa empresa, CancellationToken ct = default)
-    {
-        await context.Empresas.AddAsync(empresa, ct);
-        await context.SaveChangesAsync(ct);
-    }
+        => await context.Empresas.AddAsync(empresa, ct);
 
-    public async Task ActualizarAsync(Empresa empresa, CancellationToken ct = default)
+    public Task ActualizarAsync(Empresa empresa, CancellationToken ct = default)
     {
         context.Empresas.Update(empresa);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

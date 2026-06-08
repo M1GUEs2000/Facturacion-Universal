@@ -1,6 +1,7 @@
 using ErrorOr;
 using Facturacion.Core.Entidades;
 using Facturacion.Core.Enums;
+using Facturacion.Core.Interfaces;
 using Facturacion.Core.Interfaces.Repositorios;
 
 namespace Facturacion.Core.CasosDeUso.Parametros;
@@ -21,7 +22,8 @@ public record ComandoGuardarParametrosFacturacion(
 
 public class GuardarParametrosFacturacion(
     IEmpresasRepositorio empresas,
-    IParametrosFacturacionRepositorio parametrosRepositorio)
+    IParametrosFacturacionRepositorio parametrosRepositorio,
+    IUnitOfWork unitOfWork)
 {
     public async Task<ErrorOr<ParametrosFacturacion>> EjecutarAsync(
         ComandoGuardarParametrosFacturacion cmd,
@@ -40,6 +42,7 @@ public class GuardarParametrosFacturacion(
                 cmd.CodigoImpuesto, cmd.CodigoPorcentaje);
 
             await parametrosRepositorio.AgregarAsync(parametros, ct);
+            await unitOfWork.CommitAsync(ct);
             return parametros;
         }
 
@@ -49,6 +52,7 @@ public class GuardarParametrosFacturacion(
             cmd.ObligadoContabilidad, cmd.Moneda, cmd.CodigoImpuesto, cmd.CodigoPorcentaje);
 
         await parametrosRepositorio.ActualizarAsync(parametros, ct);
+        await unitOfWork.CommitAsync(ct);
         return parametros;
     }
 }

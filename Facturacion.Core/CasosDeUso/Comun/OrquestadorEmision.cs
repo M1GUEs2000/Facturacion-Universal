@@ -17,12 +17,12 @@ public record ParametrosEmision<TDoc>(
     byte[] CertificadoP12,
     string CertPassword,
     Func<TDoc, CancellationToken, Task<ErrorOr<byte[]>>> GenerarPdf,
-    Func<TDoc, CancellationToken, Task> Persistir,
     Func<CancellationToken, Task>? IncrementarSecuencial = null)
     where TDoc : IDocumentoEmitible;
 
 public class OrquestadorEmision(
     IServicioFirma firma, IServicioSri sri, IServicioStorage storage,
+    IUnitOfWork unitOfWork,
     ILogger<OrquestadorEmision> logger)
 {
     public async Task<ErrorOr<TDoc>> EjecutarAsync<TDoc>(
@@ -38,15 +38,15 @@ public class OrquestadorEmision(
         if (storageXmlResult.IsError) return storageXmlResult.Errors;
 
         p.Documento.RegistrarXmlFirmado(storageXmlResult.Value);
-        await p.Persistir(p.Documento, ct);
+        await unitOfWork.CommitAsync(ct);
 
         // ── 2. Recepción SRI ──────────────────────────────────────────────────
         var recepcionResult = await sri.EnviarDocumentoAsync(firmadoResult.Value, p.Ambiente, ct);
-        if (recepcionResult.IsError) 
+        if (recepcionResult.IsError)
             return recepcionResult.Errors;
 
         p.Documento.RegistrarEnvioSri();
-        await p.Persistir(p.Documento, ct);
+        await unitOfWork.CommitAsync(ct);
 
         if (p.IncrementarSecuencial is not null)
             await p.IncrementarSecuencial(ct);
@@ -61,7 +61,7 @@ public class OrquestadorEmision(
         {
             await storage.EliminarAsync(xmlFirmadoPath, ct);
             p.Documento.RegistrarNoAutorizacion(auth.MensajeSri);
-            await p.Persistir(p.Documento, ct);
+            await unitOfWork.CommitAsync(ct);
             return Errores.Sri.NoAutorizado(auth.MensajeSri);
         }
 
@@ -69,7 +69,7 @@ public class OrquestadorEmision(
         // Si el storage falla, la BD queda en PendienteAutorizacion + NumeroAutorizacion != null,
         // lo que permite al orquestador de reintento re-consultar el SRI y recuperar el XML.
         p.Documento.RegistrarNumeroAutorizacion(auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value, auth.MensajeSri);
-        await p.Persistir(p.Documento, ct);
+        await unitOfWork.CommitAsync(ct);
 
         // ── 4. Storage XML autorizado + borrar XML firmado ────────────────────
         var xmlAutPath = RutasStorage.XmlAutorizado(p.StoragePrefijo, p.ClaveAcceso);
@@ -85,7 +85,7 @@ public class OrquestadorEmision(
         p.Documento.RegistrarAutorizacionSri(
             auth.NumeroAutorizacion!, auth.FechaAutorizacion!.Value,
             storageXmlAutResult.Value, auth.MensajeSri);
-        await p.Persistir(p.Documento, ct);
+        await unitOfWork.CommitAsync(ct);
 
         // ── 5. Generación y storage del PDF ───────────────────────────────────
         var pdfResult = await p.GenerarPdf(p.Documento, ct);
@@ -96,7 +96,7 @@ public class OrquestadorEmision(
         if (storagePdfResult.IsError) return storagePdfResult.Errors;
 
         p.Documento.RegistrarPdf(storagePdfResult.Value);
-        await p.Persistir(p.Documento, ct);
+        await unitOfWork.CommitAsync(ct);
 
         return p.Documento;
     }
